@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WATER - Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
+    <style>
+        :root {
+            --catppuccin-rosewater: #f5e0dc;
+            --catppuccin-flamingo: #f2cdcd;
+            --catppuccin-pink: #f5c2e7;
+            --catppuccin-mauve: #cba6f7;
+            --catppuccin-red: #f38ba8;
+            --catppuccin-maroon: #eba0ac;
+            --catppuccin-peach: #fab387;
+            --catppuccin-yellow: #f9e2af;
+            --catppuccin-green: #a6e3a1;
+            --catppuccin-teal: #94e2d5;
+            --catppuccin-sky: #89dceb;
+            --catppuccin-sapphire: #74c7ec;
+            --catppuccin-blue: #89b4fa;
+            --catppuccin-lavender: #b4befe;
+            --catppuccin-text: #cdd6f4;
+            --catppuccin-subtext1: #bac2de;
+            --catppuccin-subtext0: #a6adc8;
+            --catppuccin-overlay2: #9399b2;
+            --catppuccin-overlay1: #7f849c;
+            --catppuccin-overlay0: #6c7086;
+            --catppuccin-surface2: #585b70;
+            --catppuccin-surface1: #45475a;
+            --catppuccin-surface0: #313244;
+            --catppuccin-base: #1e1e2e;
+            --catppuccin-mantle: #181825;
+            --catppuccin-crust: #11111b;
+            --success: var(--catppuccin-green);
+            --danger: var(--catppuccin-red);
+            --card-bg: var(--catppuccin-mantle);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--catppuccin-crust);
+            color: var(--catppuccin-text);
+            display: flex;
+            flex-direction: column;
+            font-family: Arial, sans-serif;
+            gap: 1rem;
+            min-height: 100vh;
+            margin: 0rem;
+            padding: 1rem;
+        }
+
+        h1 {
+            color: var(--catppuccin-text);
+            font-size: 1.5rem;
+            margin: 0;
+        }
+
+        .header-card {
+            align-items: center;
+            background: var(--card-bg);
+            border: 1px solid var(--catppuccin-surface0);
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            display: flex;
+            justify-content: space-between;
+            padding: 1rem;
+        }
+
+        .status-badge {
+            background-color: var(--danger);
+            border-radius: 1rem;
+            color: var(--catppuccin-crust);
+            font-size: 0.85rem;
+            font-weight: bold;
+            padding: 0.4rem 0.8rem;
+        }
+
+        .status-badge.connected {
+            background-color: var(--success);
+        }
+
+        .grid-container {
+            display: grid;
+            gap: 1rem;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--catppuccin-surface0);
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            padding: 1.2rem;
+            text-align: center;
+        }
+
+        .card h3 {
+            color: var(--catppuccin-subtext0);
+            font-size: 0.85rem;
+            margin: 0rem 0 0.5rem 0;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .card .value {
+            color: var(--catppuccin-text);
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .chart-container {
+            background: var(--card-bg);
+            border: 1px solid var(--catppuccin-surface0);
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            padding: 1rem;
+        }
+
+        .log-container {
+            background: var(--card-bg);
+            border: 1px solid var(--catppuccin-surface0);
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: var(--catppuccin-subtext1);
+            max-height: 10rem;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header-card">
+        <h1>WATER - Dashboard</h1>
+        <div class="status-badge connection-status">Disconnected</div>
+    </div>
+
+    <div class="grid-container">
+        <div class="card">
+            <h3>Water Distance</h3>
+            <div class="value val-distance">-- cm</div>
+        </div>
+        <div class="card">
+            <h3>Flow Sensor (Raw)</h3>
+            <div class="value val-flow">--</div>
+        </div>
+        <div class="card">
+            <h3>Last Timestamp</h3>
+            <div class="value val-time" style="font-size: 1.2rem; margin-top: 10px;">--</div>
+        </div>
+    </div>
+
+    <div class="chart-container">
+        <canvas class="sensor-chart" height="90"></canvas>
+    </div>
+
+    <div class="log-container log-box"></div>
+
+    <script>
+        const mqttHost = "broker.hivemq.com";
+        const mqttPort = 8000;
+        const mqttTopic = "esp32/water/sensors";
+
+        const rootStyles = getComputedStyle(document.documentElement);
+        const colBlue = rootStyles.getPropertyValue('--catppuccin-blue').trim();
+        const colGreen = rootStyles.getPropertyValue('--catppuccin-green').trim();
+        const colText = rootStyles.getPropertyValue('--catppuccin-text').trim();
+        const colSubtext = rootStyles.getPropertyValue('--catppuccin-subtext0').trim();
+        const colSurface = rootStyles.getPropertyValue('--catppuccin-surface0').trim();
+        const colBase = rootStyles.getPropertyValue('--catppuccin-base').trim();
+
+        const clientId = "web_dashboard_" + Math.random().toString(16).substring(2, 8);
+        const client = new Paho.MQTT.Client(mqttHost, Number(mqttPort), clientId);
+        const statusBadge = document.querySelector(".connection-status");
+        const valDistance = document.querySelector(".val-distance");
+        const valFlow = document.querySelector(".val-flow");
+        const valTime = document.querySelector(".val-time");
+        const logBox = document.querySelector(".log-box");
+
+        const ctx = document.querySelector('.sensor-chart').getContext('2d');
+        const sensorChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: 'Distance (cm)',
+                        data: [],
+                        borderColor: colBlue,
+                        backgroundColor: 'rgba(137, 180, 250, 0.15)',
+                        borderWidth: 2,
+                        yAxisID: 'y',
+                        tension: 0.3,
+                        fill: true,
+                        pointBackgroundColor: colBlue,
+                        pointRadius: 2
+                    },
+                    {
+                        label: 'Flow Raw',
+                        data: [],
+                        borderColor: colGreen,
+                        backgroundColor: 'rgba(166, 227, 161, 0.15)',
+                        borderWidth: 2,
+                        yAxisID: 'y1',
+                        tension: 0.3,
+                        fill: true,
+                        pointBackgroundColor: colGreen,
+                        pointRadius: 2
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: { 
+                        type: 'linear', 
+                        position: 'left', 
+                        grid: { color: colSurface }, 
+                        ticks: { color: colSubtext },
+                        title: { display: true, text: 'Distance (cm)', color: colText } 
+                    },
+                    y1: { 
+                        type: 'linear', 
+                        position: 'right', 
+                        grid: { drawOnChartArea: false }, 
+                        ticks: { color: colSubtext },
+                        title: { display: true, text: 'Flow Raw', color: colText } 
+                    },
+                    x: {
+                        grid: { color: colSurface },
+                        ticks: { color: colSubtext }
+                    }
+                }
+            }
+        });
+
+        function logMessage(msg) {
+            const timeStr = new Date().toLocaleTimeString();
+            logBox.innerHTML += `[${timeStr}] ${msg}<br>`;
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        function mqttConnect() {
+            logMessage(`Connecting to wss://${mqttHost}:${mqttPort}/mqtt...`);
+            client.connect({
+                timeout: 3,
+                useSSL: false,
+                onSuccess: function () {
+                    statusBadge.innerText = "Connected";
+                    statusBadge.className = "status-badge connection-status connected";
+                    logMessage("Connected to MQTT broker!");
+                    client.subscribe(mqttTopic);
+                    logMessage(`Subscribed to topic: ${mqttTopic}`);
+                },
+                onFailure: function (message) {
+                    statusBadge.innerText = "Connection Error";
+                    statusBadge.className = "status-badge connection-status";
+                    logMessage(`Connection error: ${message.errorMessage}`);
+                    setTimeout(mqttConnect, 5000);
+                }
+            });
+        }
+
+        client.onConnectionLost = function (responseObject) {
+            statusBadge.innerText = "Disconnected";
+            statusBadge.className = "status-badge connection-status";
+            logMessage(`Connection lost: ${responseObject.errorMessage}`);
+            setTimeout(mqttConnect, 5000);
+        };
+
+        client.onMessageArrived = function (message) {
+            try {
+                const data = JSON.parse(message.payloadString);
+                const timeStr = new Date(data.timestamp * 1000).toLocaleTimeString();
+
+                valDistance.innerText = `${data.distance_cm.toFixed(1)} cm`;
+                valFlow.innerText = data.flow_raw;
+                valTime.innerText = timeStr;
+
+                if (sensorChart.data.labels.length > 20) {
+                    sensorChart.data.labels.shift();
+                    sensorChart.data.datasets[0].data.shift();
+                    sensorChart.data.datasets[1].data.shift();
+                }
+
+                sensorChart.data.labels.push(timeStr);
+                sensorChart.data.datasets[0].data.push(data.distance_cm);
+                sensorChart.data.datasets[1].data.push(data.flow_raw);
+                sensorChart.update();
+
+                logMessage(`Received payload -> Distance: ${data.distance_cm}cm, Flow: ${data.flow_raw}`);
+            } catch (e) {
+                logMessage(`Error parsing incoming JSON: ${e.message}`);
+            }
+        };
+
+        mqttConnect();
+    </script>
+</body>
+</html>
+
