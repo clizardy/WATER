@@ -1,309 +1,570 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WATER - Dashboard</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
-    <style>
-        :root {
-            --catppuccin-rosewater: #f5e0dc;
-            --catppuccin-flamingo: #f2cdcd;
-            --catppuccin-pink: #f5c2e7;
-            --catppuccin-mauve: #cba6f7;
-            --catppuccin-red: #f38ba8;
-            --catppuccin-maroon: #eba0ac;
-            --catppuccin-peach: #fab387;
-            --catppuccin-yellow: #f9e2af;
-            --catppuccin-green: #a6e3a1;
-            --catppuccin-teal: #94e2d5;
-            --catppuccin-sky: #89dceb;
-            --catppuccin-sapphire: #74c7ec;
-            --catppuccin-blue: #89b4fa;
-            --catppuccin-lavender: #b4befe;
-            --catppuccin-text: #cdd6f4;
-            --catppuccin-subtext1: #bac2de;
-            --catppuccin-subtext0: #a6adc8;
-            --catppuccin-overlay2: #9399b2;
-            --catppuccin-overlay1: #7f849c;
-            --catppuccin-overlay0: #6c7086;
-            --catppuccin-surface2: #585b70;
-            --catppuccin-surface1: #45475a;
-            --catppuccin-surface0: #313244;
-            --catppuccin-base: #1e1e2e;
-            --catppuccin-mantle: #181825;
-            --catppuccin-crust: #11111b;
-            --success: var(--catppuccin-green);
-            --danger: var(--catppuccin-red);
-            --card-bg: var(--catppuccin-mantle);
-        }
-
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            background: var(--catppuccin-crust);
-            color: var(--catppuccin-text);
-            display: flex;
-            flex-direction: column;
-            font-family: Arial, sans-serif;
-            gap: 1rem;
-            min-height: 100vh;
-            margin: 0rem;
-            padding: 1rem;
-        }
-
-        h1 {
-            color: var(--catppuccin-text);
-            font-size: 1.5rem;
-            margin: 0;
-        }
-
-        .header-card {
-            align-items: center;
-            background: var(--card-bg);
-            border: 1px solid var(--catppuccin-surface0);
-            border-radius: 0.5rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-            display: flex;
-            justify-content: space-between;
-            padding: 1rem;
-        }
-
-        .status-badge {
-            background-color: var(--danger);
-            border-radius: 1rem;
-            color: var(--catppuccin-crust);
-            font-size: 0.85rem;
-            font-weight: bold;
-            padding: 0.4rem 0.8rem;
-        }
-
-        .status-badge.connected {
-            background-color: var(--success);
-        }
-
-        .grid-container {
-            display: grid;
-            gap: 1rem;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        }
-
-        .card {
-            background: var(--card-bg);
-            border: 1px solid var(--catppuccin-surface0);
-            border-radius: 1rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-            padding: 1.2rem;
-            text-align: center;
-        }
-
-        .card h3 {
-            color: var(--catppuccin-subtext0);
-            font-size: 0.85rem;
-            margin: 0rem 0 0.5rem 0;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        .card .value {
-            color: var(--catppuccin-text);
-            font-size: 1.5rem;
-            font-weight: bold;
-        }
-
-        .chart-container {
-            background: var(--card-bg);
-            border: 1px solid var(--catppuccin-surface0);
-            border-radius: 1rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-            padding: 1rem;
-        }
-
-        .log-container {
-            background: var(--card-bg);
-            border: 1px solid var(--catppuccin-surface0);
-            border-radius: 1rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-            font-family: monospace;
-            font-size: 0.85rem;
-            color: var(--catppuccin-subtext1);
-            max-height: 10rem;
-            overflow-y: auto;
-            padding: 1rem;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#11111b" />
+  <title>WATER AI — Creative Intelligence</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --catppuccin-rosewater:#f5e0dc; --catppuccin-flamingo:#f2cdcd; --catppuccin-pink:#f5c2e7;
+      --catppuccin-mauve:#cba6f7; --catppuccin-red:#f38ba8; --catppuccin-maroon:#eba0ac;
+      --catppuccin-peach:#fab387; --catppuccin-yellow:#f9e2af; --catppuccin-green:#a6e3a1;
+      --catppuccin-teal:#94e2d5; --catppuccin-sky:#89dceb; --catppuccin-sapphire:#74c7ec;
+      --catppuccin-blue:#89b4fa; --catppuccin-lavender:#b4befe; --catppuccin-text:#cdd6f4;
+      --catppuccin-subtext1:#bac2de; --catppuccin-subtext0:#a6adc8; --catppuccin-overlay2:#9399b2;
+      --catppuccin-overlay1:#7f849c; --catppuccin-overlay0:#6c7086; --catppuccin-surface2:#585b70;
+      --catppuccin-surface1:#45475a; --catppuccin-surface0:#313244; --catppuccin-base:#1e1e2e;
+      --catppuccin-mantle:#181825; --catppuccin-crust:#11111b;
+      --bg:var(--catppuccin-crust); --panel:rgba(30,30,46,.72); --panel-2:rgba(24,24,37,.86);
+      --text:var(--catppuccin-text); --muted:var(--catppuccin-subtext0); --line:rgba(205,214,244,.09);
+      --accent:var(--catppuccin-mauve); --good:var(--catppuccin-green); --bad:var(--catppuccin-red);
+      --sidebar-w:258px; --radius:22px; --shadow:0 18px 55px rgba(0,0,0,.25);
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth;scroll-padding-top:100px}
+    body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 78% -10%,rgba(137,180,250,.13),transparent 36%),radial-gradient(ellipse at 10% 35%,rgba(203,166,247,.10),transparent 32%),var(--bg);color:var(--text);font-family:Manrope,system-ui,sans-serif;overflow-x:hidden}
+    body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.14;background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:42px 42px;mask-image:linear-gradient(to bottom,black,transparent 85%);z-index:-1}
+    button,input{font:inherit}button{cursor:pointer;color:inherit}
+    .app-shell{min-height:100vh}
+    .sidebar{position:fixed;z-index:50;inset:0 auto 0 0;width:var(--sidebar-w);padding:25px 17px 18px;background:rgba(17,17,27,.88);backdrop-filter:blur(22px);border-right:1px solid var(--line);display:flex;flex-direction:column;transition:transform .35s ease,width .3s ease}
+    .brand{display:flex;align-items:center;gap:12px;padding:2px 10px 28px}
+    .brand-mark{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(145deg,var(--catppuccin-sky),var(--catppuccin-blue) 48%,var(--catppuccin-mauve));color:#11111b;font-size:22px;box-shadow:0 0 28px rgba(137,220,235,.25)}
+    .brand-name{font-size:15px;font-weight:800;letter-spacing:.12em}.brand-name span{display:block;color:var(--muted);font-size:9px;letter-spacing:.2em;margin-top:3px}
+    .side-label{font:10px "DM Mono",monospace;color:var(--catppuccin-overlay1);letter-spacing:.18em;padding:13px 12px 9px}
+    .side-nav{display:grid;gap:5px}
+    .nav-link{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:13px;text-decoration:none;color:var(--muted);font-size:12px;font-weight:700;transition:.2s;border:1px solid transparent}
+    .nav-link .ico{width:20px;text-align:center;font-size:16px}.nav-link:hover{color:var(--text);background:rgba(205,214,244,.055);transform:translateX(3px)}
+    .nav-link.active{color:var(--catppuccin-lavender);background:linear-gradient(90deg,rgba(203,166,247,.16),rgba(203,166,247,.035));border-color:rgba(203,166,247,.15)}
+    .nav-link .nav-count{margin-left:auto;font:10px "DM Mono";padding:3px 7px;border-radius:20px;background:rgba(243,139,168,.14);color:var(--catppuccin-red)}
+    .side-spacer{flex:1}
+    .node-card{padding:14px;border:1px solid var(--line);border-radius:17px;background:linear-gradient(145deg,rgba(137,220,235,.08),rgba(203,166,247,.06));margin:12px 3px}
+    .node-top{display:flex;align-items:center;justify-content:space-between;font-size:10px;color:var(--muted)}
+    .node-id{font:11px "DM Mono";margin:9px 0 5px}.node-state{font-size:10px;color:var(--good)}
+    .node-foot{display:flex;justify-content:space-between;margin-top:12px;color:var(--muted);font-size:9px}
+    .side-bottom{display:flex;align-items:center;gap:10px;padding:13px 9px 0;border-top:1px solid var(--line)}
+    .avatar{width:33px;height:33px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,var(--catppuccin-peach),var(--catppuccin-pink));color:#1e1e2e;font-size:12px;font-weight:900}
+    .profile-meta{font-size:10px;font-weight:800}.profile-meta small{display:block;color:var(--muted);font-weight:500;margin-top:3px}
+    .main{margin-left:var(--sidebar-w);min-height:100vh;padding:0 34px 30px;transition:margin .3s ease}
+    .topbar{height:82px;display:flex;align-items:center;justify-content:space-between;gap:16px;position:sticky;top:0;z-index:30;background:linear-gradient(180deg,rgba(17,17,27,.94),rgba(17,17,27,.72));backdrop-filter:blur(18px);border-bottom:1px solid var(--line)}
+    .top-left{display:flex;align-items:center;gap:14px}.menu-btn{display:none}
+    .eyebrow{font:10px "DM Mono",monospace;color:var(--muted);letter-spacing:.15em;text-transform:uppercase}
+    .page-title{font-size:17px;font-weight:800;margin-top:4px;letter-spacing:-.03em}
+    .top-actions{display:flex;align-items:center;gap:9px}
+    .icon-btn,.soft-btn{border:1px solid var(--line);background:rgba(205,214,244,.045);border-radius:12px;padding:10px 12px;color:var(--muted);transition:.2s}
+    .icon-btn:hover,.soft-btn:hover{border-color:rgba(203,166,247,.4);color:var(--text);background:rgba(203,166,247,.1)}
+    .connection-pill{display:flex;align-items:center;gap:8px;border:1px solid rgba(243,139,168,.2);background:rgba(243,139,168,.08);color:var(--catppuccin-red);padding:9px 12px;border-radius:30px;font-size:10px;font-weight:800;letter-spacing:.04em}
+    .dot{width:7px;height:7px;border-radius:50%;background:currentColor;box-shadow:0 0 12px currentColor}
+    .connection-pill.connected{color:var(--good);background:rgba(166,227,161,.08);border-color:rgba(166,227,161,.2)}
+    .content{max-width:1600px;margin:auto}
+    .hero{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;padding:30px 0 24px}
+    .hero h1{font-size:clamp(27px,3vw,42px);line-height:1.12;letter-spacing:-.055em;margin:8px 0 9px}
+    .gradient-text{background:linear-gradient(90deg,var(--catppuccin-sky),var(--catppuccin-blue),var(--catppuccin-mauve));-webkit-background-clip:text;background-clip:text;color:transparent}
+    .hero p{margin:0;color:var(--muted);font-size:12px;line-height:1.7;max-width:590px}
+    .hero-actions{display:flex;gap:9px;flex-wrap:wrap}
+    .primary-btn{border:0;border-radius:12px;padding:11px 15px;background:linear-gradient(110deg,var(--catppuccin-blue),var(--catppuccin-mauve));color:#171725;font-size:11px;font-weight:900;box-shadow:0 8px 24px rgba(137,180,250,.18);transition:.2s}
+    .primary-btn:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(203,166,247,.3)}
+    .section-kicker{display:flex;align-items:center;gap:10px;margin:18px 0 13px;font:10px "DM Mono";letter-spacing:.17em;text-transform:uppercase;color:var(--muted)}
+    .section-kicker:after{content:"";height:1px;background:var(--line);flex:1}
+    .bento{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:15px}
+    .card{position:relative;min-width:0;padding:19px;border:1px solid var(--line);border-radius:var(--radius);background:linear-gradient(145deg,rgba(49,50,68,.52),rgba(24,24,37,.78));backdrop-filter:blur(18px);box-shadow:var(--shadow);overflow:hidden;transition:transform .3s,border-color .3s,box-shadow .3s}
+    .card:hover{transform:translateY(-3px);border-color:rgba(203,166,247,.27);box-shadow:0 20px 60px rgba(0,0,0,.3),0 0 28px rgba(203,166,247,.055)}
+    .card:before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 100% 0,rgba(203,166,247,.08),transparent 38%)}
+    .card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;position:relative}
+    .card-label{font-size:10px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.12em}
+    .card-icon{width:31px;height:31px;display:grid;place-items:center;border-radius:10px;background:rgba(203,166,247,.11);color:var(--catppuccin-mauve)}
+    .metric{font-size:clamp(25px,3vw,36px);font-weight:800;letter-spacing:-.06em;margin:17px 0 5px;position:relative}
+    .metric small{font-size:12px;color:var(--muted);letter-spacing:0;font-weight:600}
+    .metric-foot{font-size:10px;color:var(--muted);position:relative}
+    .trend{color:var(--good);font-weight:800}
+    .kpi{grid-column:span 3;min-height:140px}
+    .tank-card{grid-column:span 5;min-height:360px}
+    .chart-card{grid-column:span 7;min-height:360px}
+    .ai-card{grid-column:span 4;min-height:245px}
+    .health-card{grid-column:span 4;min-height:245px}
+    .control-card{grid-column:span 4;min-height:245px}
+    .log-card{grid-column:span 7;min-height:260px}
+    .alert-card{grid-column:span 5;min-height:260px}
+    .tank-layout{display:flex;align-items:center;justify-content:space-around;gap:20px;height:275px;position:relative}
+    .tank{width:130px;height:230px;border:2px solid rgba(205,214,244,.35);border-top:4px solid rgba(205,214,244,.5);border-radius:24px 24px 17px 17px;position:relative;overflow:hidden;background:linear-gradient(90deg,rgba(255,255,255,.04),rgba(255,255,255,.01),rgba(255,255,255,.07));box-shadow:inset 10px 0 20px rgba(0,0,0,.18),0 0 35px rgba(137,220,235,.08)}
+    .tank:before,.tank:after{content:"";position:absolute;z-index:4;top:0;bottom:0;width:1px;background:rgba(255,255,255,.18)}.tank:before{left:13px}.tank:after{right:13px}
+    .tank-water{position:absolute;bottom:0;left:0;width:100%;height:54%;background:linear-gradient(180deg,rgba(137,220,235,.82),rgba(116,199,236,.72) 40%,rgba(137,180,250,.85));transition:height 1.2s cubic-bezier(.2,.8,.2,1);box-shadow:0 -5px 28px rgba(137,220,235,.25)}
+    .wave{position:absolute;top:-12px;left:-50%;width:200%;height:25px;border-radius:43%;background:rgba(205,245,255,.45);animation:wave 7s linear infinite}
+    .wave.wave-two{top:-8px;opacity:.4;animation-duration:10s;animation-direction:reverse}
+    @keyframes wave{from{transform:rotate(0) translateX(0)}to{transform:rotate(360deg) translateX(0)}}
+    .bubble{position:absolute;bottom:-15px;width:5px;height:5px;border:1px solid rgba(255,255,255,.7);border-radius:50%;animation:bubble 5s infinite ease-in}
+    .bubble:nth-child(2){left:25%;animation-delay:1s}.bubble:nth-child(3){left:67%;animation-delay:2.1s;width:8px;height:8px}.bubble:nth-child(4){left:45%;animation-delay:3s}
+    @keyframes bubble{0%{transform:translateY(0);opacity:0}20%{opacity:.8}100%{transform:translateY(-220px);opacity:0}}
+    .tank-gloss{position:absolute;inset:0;background:linear-gradient(110deg,rgba(255,255,255,.14),transparent 27%,transparent 72%,rgba(255,255,255,.06));z-index:5;pointer-events:none}
+    .tank-scale{height:215px;display:flex;flex-direction:column;justify-content:space-between;color:var(--muted);font:9px "DM Mono"}
+    .tank-reading{text-align:center}.tank-reading strong{display:block;font-size:33px;letter-spacing:-.06em}.tank-reading span{font-size:10px;color:var(--muted)}
+    .tank-meta{display:grid;gap:13px;min-width:100px}.tank-meta b{display:block;font-size:15px;margin-top:4px}.tank-meta small{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
+    .chart-wrap{height:275px;position:relative;margin-top:15px}
+    .chart-legend{display:flex;gap:15px;color:var(--muted);font-size:10px}.legend-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px}
+    .ai-core{display:flex;align-items:center;justify-content:center;gap:20px;height:165px}
+    .orb-wrap{width:118px;height:118px;display:grid;place-items:center;position:relative}
+    .orb{width:58px;height:58px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,var(--catppuccin-sky) 20%,var(--catppuccin-blue) 55%,var(--catppuccin-mauve));box-shadow:0 0 25px rgba(137,220,235,.5),0 0 65px rgba(203,166,247,.3);animation:orbPulse 2.8s ease-in-out infinite}
+    .orb-ring{position:absolute;inset:5px;border:1px solid rgba(137,220,235,.42);border-radius:50%;animation:ring 4s linear infinite}.orb-ring.r2{inset:-7px;border-color:rgba(203,166,247,.3);animation-duration:6s;animation-direction:reverse}
+    @keyframes orbPulse{50%{transform:scale(1.13);filter:brightness(1.2)}}
+    @keyframes ring{to{transform:rotate(360deg) scale(1.08)}}
+    .ai-stats{display:grid;gap:12px}.ai-stats b{font-size:16px;display:block}.ai-stats small{font-size:9px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+    .mini-progress{height:5px;border-radius:8px;background:var(--catppuccin-surface0);overflow:hidden;margin-top:7px}.mini-progress span{display:block;height:100%;width:78%;background:linear-gradient(90deg,var(--catppuccin-sky),var(--catppuccin-mauve));border-radius:8px}
+    .health-list{display:grid;gap:15px;margin-top:22px}.health-row{display:grid;grid-template-columns:1fr auto;gap:7px;align-items:center;font-size:11px}.health-row span:last-child{color:var(--good);font:10px "DM Mono"}
+    .health-track{grid-column:1/-1;height:5px;border-radius:10px;background:var(--catppuccin-surface0);overflow:hidden}.health-track i{display:block;height:100%;border-radius:10px;background:linear-gradient(90deg,var(--catppuccin-teal),var(--catppuccin-blue))}
+    .control-intro{font-size:10px;color:var(--muted);line-height:1.6;margin:13px 0 18px}.control-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid var(--line);font-size:11px}.control-row small{display:block;color:var(--muted);font-size:9px;margin-top:4px}
+    .switch{position:relative;width:48px;height:27px;flex:none}.switch input{opacity:0;width:0;height:0}.slider{position:absolute;inset:0;border-radius:30px;background:var(--catppuccin-surface1);transition:.3s}.slider:before{content:"";position:absolute;width:19px;height:19px;left:4px;top:4px;background:var(--catppuccin-text);border-radius:50%;transition:.3s}.switch input:checked+.slider{background:linear-gradient(90deg,var(--catppuccin-teal),var(--catppuccin-blue))}.switch input:checked+.slider:before{transform:translateX(21px);background:#171725}
+    .demo-note{font-size:9px;color:var(--catppuccin-yellow);margin-top:10px;line-height:1.5}
+    .terminal{height:180px;overflow:auto;background:rgba(10,12,18,.72);border:1px solid rgba(166,227,161,.12);border-radius:14px;padding:13px;margin-top:15px;font:10px/1.8 "DM Mono",monospace;color:var(--catppuccin-green)}
+    .terminal-line{animation:logIn .25s ease-out;white-space:pre-wrap;overflow-wrap:anywhere}.terminal-line .time{color:var(--catppuccin-overlay1)}.terminal-line.warn{color:var(--catppuccin-yellow)}.terminal-line.error{color:var(--catppuccin-red)}
+    .cursor{display:inline-block;width:6px;height:12px;background:var(--catppuccin-green);vertical-align:middle;margin-left:4px;animation:blink 1s steps(2) infinite}
+    @keyframes blink{50%{opacity:0}}@keyframes logIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+    .log-toolbar{display:flex;justify-content:space-between;align-items:center;margin-top:15px}.tiny-btn{border:1px solid var(--line);border-radius:9px;background:rgba(205,214,244,.04);padding:7px 10px;font-size:9px;color:var(--muted)}
+    .alert-list{display:grid;gap:9px;margin-top:15px}.alert-item{display:flex;gap:10px;align-items:flex-start;padding:11px;border:1px solid var(--line);border-radius:13px;background:rgba(205,214,244,.025)}
+    .alert-symbol{width:25px;height:25px;border-radius:8px;display:grid;place-items:center;background:rgba(249,226,175,.12);color:var(--catppuccin-yellow);flex:none}
+    .alert-item b{font-size:10px;display:block}.alert-item small{font-size:9px;color:var(--muted);display:block;margin-top:4px;line-height:1.5}
+    .footer{margin-top:25px;padding:22px 2px 8px;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:15px;color:var(--muted);font-size:9px}
+    .footer-links{display:flex;gap:17px}.footer a{color:var(--muted);text-decoration:none}.footer a:hover{color:var(--catppuccin-lavender)}
+    .toast-stack{position:fixed;right:22px;bottom:22px;z-index:100;display:grid;gap:9px}.toast{min-width:230px;max-width:330px;padding:13px 15px;border:1px solid var(--line);border-radius:14px;background:rgba(24,24,37,.95);box-shadow:var(--shadow);font-size:11px;animation:toastIn .25s ease-out}.toast b{display:block;margin-bottom:4px}.toast small{color:var(--muted)}
+    @keyframes toastIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+    .modal-backdrop{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.65);backdrop-filter:blur(8px);display:none;place-items:center;padding:20px}.modal-backdrop.open{display:grid}
+    .modal{width:min(520px,100%);padding:22px;border:1px solid var(--line);border-radius:22px;background:#1e1e2e;box-shadow:var(--shadow)}.modal h2{font-size:18px;margin:0 0 7px}.modal p{font-size:11px;color:var(--muted);line-height:1.6}
+    .field{display:grid;gap:7px;margin:14px 0}.field label{font-size:10px;color:var(--muted)}.field input{width:100%;border:1px solid var(--line);border-radius:10px;background:#11111b;color:var(--text);padding:11px;font:11px "DM Mono"}
+    .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+    .mobile-overlay{display:none}
+    @media(max-width:1180px){.kpi{grid-column:span 6}.tank-card,.chart-card{grid-column:span 12}.ai-card,.health-card,.control-card{grid-column:span 4}.log-card,.alert-card{grid-column:span 6}}
+    @media(max-width:850px){:root{--sidebar-w:258px}.sidebar{transform:translateX(-105%)}.sidebar.open{transform:translateX(0)}.mobile-overlay.show{display:block;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:40}.main{margin-left:0;padding:0 20px 25px}.menu-btn{display:inline-block}.topbar{height:72px}.ai-card,.health-card,.control-card{grid-column:span 6}.hero{align-items:flex-start;flex-direction:column}.hero-actions{width:100%}}
+    @media(max-width:600px){.main{padding:0 13px 20px}.topbar{gap:8px}.page-title{font-size:14px}.connection-pill{font-size:0;padding:10px}.connection-pill .dot{width:8px;height:8px}.top-actions{gap:5px}.icon-btn,.soft-btn{padding:9px}.hero{padding-top:24px}.hero h1{font-size:30px}.kpi{grid-column:span 6;padding:15px;min-height:125px}.metric{font-size:26px}.tank-card,.chart-card,.ai-card,.health-card,.control-card,.log-card,.alert-card{grid-column:span 12}.tank-layout{gap:10px}.tank{width:112px;height:210px}.tank-meta{min-width:83px}.footer{align-items:flex-start;flex-direction:column}.footer-links{flex-wrap:wrap}.card{border-radius:18px;padding:16px}}
+    @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
+  </style>
 </head>
 <body>
-
-    <div class="header-card">
-        <h1>WATER - Dashboard</h1>
-        <div class="status-badge connection-status">Disconnected</div>
+<div class="app-shell">
+  <div class="mobile-overlay" id="mobileOverlay"></div>
+  <aside class="sidebar" id="sidebar">
+    <div class="brand"><div class="brand-mark">◈</div><div class="brand-name">WATER<span>Creative Intelligence / 01</span></div></div>
+    <div class="side-label">WORKSPACE</div>
+    <nav class="side-nav">
+      <a class="nav-link active" href="#overview"><span class="ico">⌂</span>Overview</a>
+      <a class="nav-link" href="#telemetry"><span class="ico">⌁</span>Live telemetry</a>
+      <a class="nav-link" href="#intelligence"><span class="ico">✳</span>Edge intelligence</a>
+      <a class="nav-link" href="#devices"><span class="ico">◉</span>Device health</a>
+      <a class="nav-link" href="#controls"><span class="ico">⚙</span>Control center</a>
+      <a class="nav-link" href="#logs"><span class="ico">⌘</span>System logs</a>
+      <a class="nav-link" href="#alerts"><span class="ico">♧</span>Alert center <span class="nav-count" id="alertCount">02</span></a>
+    </nav>
+    <div class="side-label">TOOLS</div>
+    <nav class="side-nav">
+      <a class="nav-link" href="#" id="exportLink"><span class="ico">⇩</span>Export data</a>
+      <a class="nav-link" href="#" id="settingsLink"><span class="ico">☷</span>Connection settings</a>
+    </nav>
+    <div class="side-spacer"></div>
+    <div class="node-card">
+      <div class="node-top"><span>ACTIVE EDGE NODE</span><span>●</span></div>
+      <div class="node-id">ESP32-WATER-001</div>
+      <div class="node-state" id="nodeState">Waiting for telemetry</div>
+      <div class="node-foot"><span>MICROSD LOGGING</span><span>LOCAL STORAGE</span></div>
     </div>
+    <div class="side-bottom"><div class="avatar">HG</div><div class="profile-meta">WATER Demo<small>Universitas Tidar</small></div></div>
+  </aside>
 
-    <div class="grid-container">
-        <div class="card">
-            <h3>Water Distance</h3>
-            <div class="value val-distance">-- cm</div>
+  <main class="main">
+    <header class="topbar">
+      <div class="top-left">
+        <button class="icon-btn menu-btn" id="menuBtn" aria-label="Open menu">☰</button>
+        <div><div class="eyebrow">WATER INFRASTRUCTURE / CONTROL ROOM</div><div class="page-title">Command dashboard</div></div>
+      </div>
+      <div class="top-actions">
+        <div class="connection-pill" id="connectionPill"><span class="dot"></span><span id="connectionText">DISCONNECTED</span></div>
+        <button class="icon-btn" id="notifyBtn" title="Notifications">♧</button>
+        <button class="icon-btn" id="themeBtn" title="Toggle visual mode">◐</button>
+      </div>
+    </header>
+
+    <div class="content">
+      <section class="hero" id="overview">
+        <div>
+          <div class="eyebrow">INTELLIGENT WATER MONITORING PLATFORM</div>
+          <h1>Water, under<br><span class="gradient-text">intelligent control.</span></h1>
+          <p>One command center for tank-level visibility, flow telemetry, edge intelligence and operational awareness. Built for the next generation of water infrastructure.</p>
         </div>
-        <div class="card">
-            <h3>Flow Sensor (Raw)</h3>
-            <div class="value val-flow">--</div>
+        <div class="hero-actions">
+          <button class="primary-btn" id="simulationBtn">▶ &nbsp;Enable demo simulation</button>
+          <button class="soft-btn" id="reconnectBtn">↻ &nbsp;Reconnect</button>
         </div>
-        <div class="card">
-            <h3>Last Timestamp</h3>
-            <div class="value val-time" style="font-size: 1.2rem; margin-top: 10px;">--</div>
-        </div>
+      </section>
+
+      <div class="section-kicker">01 / Live system snapshot <span id="lastUpdated">Waiting for data</span></div>
+      <section class="bento">
+        <article class="card kpi"><div class="card-head"><span class="card-label">Water level</span><span class="card-icon">◒</span></div><div class="metric" id="levelMetric">--<small> %</small></div><div class="metric-foot"><span class="trend">●</span> Estimated tank fill level</div></article>
+        <article class="card kpi"><div class="card-head"><span class="card-label">Distance sensor</span><span class="card-icon">⌁</span></div><div class="metric" id="distanceMetric">--<small> cm</small></div><div class="metric-foot">Ultrasonic measurement</div></article>
+        <article class="card kpi"><div class="card-head"><span class="card-label">Flow reading</span><span class="card-icon">∿</span></div><div class="metric" id="flowMetric">--</div><div class="metric-foot">Raw sensor pulse / value</div></article>
+        <article class="card kpi"><div class="card-head"><span class="card-label">System uptime</span><span class="card-icon">◷</span></div><div class="metric" id="uptimeMetric">00:00</div><div class="metric-foot" id="dataMode">Awaiting first packet</div></article>
+
+        <article class="card tank-card" id="telemetry">
+          <div class="card-head"><span class="card-label">01A / Tank visualization</span><span class="card-icon">◒</span></div>
+          <div class="tank-layout">
+            <div class="tank-scale"><span>100%</span><span>75%</span><span>50%</span><span>25%</span><span>0%</span></div>
+            <div class="tank"><div class="tank-water" id="tankWater"><div class="wave"></div><div class="wave wave-two"></div><i class="bubble"></i><i class="bubble"></i><i class="bubble"></i><i class="bubble"></i></div><div class="tank-gloss"></div></div>
+            <div class="tank-meta"><div><small>Fill level</small><b id="tankPercent">--%</b></div><div><small>Distance</small><b id="tankDistance">-- cm</b></div><div><small>Capacity</small><b>1,000 L</b></div></div>
+          </div>
+          <div class="tank-reading"><strong id="tankStatus">AWAITING DATA</strong><span>Live tank state • visual estimation</span></div>
+        </article>
+
+        <article class="card chart-card">
+          <div class="card-head"><div><div class="card-label">01B / Sensor telemetry</div><div style="font-size:15px;font-weight:800;margin-top:6px">Signal overview</div></div><span class="card-icon">⌁</span></div>
+          <div class="chart-legend"><span><i class="legend-dot" style="background:var(--catppuccin-blue)"></i>Distance</span><span><i class="legend-dot" style="background:var(--catppuccin-green)"></i>Flow raw</span></div>
+          <div class="chart-wrap"><canvas id="sensorChart"></canvas></div>
+        </article>
+
+        <article class="card ai-card" id="intelligence">
+          <div class="card-head"><span class="card-label">02 / Edge intelligence</span><span class="card-icon">✳</span></div>
+          <div class="ai-core"><div class="orb-wrap"><div class="orb-ring"></div><div class="orb-ring r2"></div><div class="orb"></div></div><div class="ai-stats"><div><small>Processing state</small><b id="aiState">STANDBY</b></div><div><small>Inference mode</small><b>Edge / Prototype</b></div><div><small>Signal quality</small><b id="signalQuality">--</b></div></div></div>
+          <div class="metric-foot">AI indicator is a prototype visualization; actual inference metrics require an ESP32 payload.</div>
+        </article>
+
+        <article class="card health-card" id="devices">
+          <div class="card-head"><span class="card-label">03 / Device health</span><span class="card-icon">◉</span></div>
+          <div class="health-list">
+            <div class="health-row"><span>MQTT connection</span><span id="mqttHealth">OFFLINE</span><div class="health-track"><i id="mqttBar" style="width:8%"></i></div></div>
+            <div class="health-row"><span>Ultrasonic sensor</span><span id="distanceHealth">WAITING</span><div class="health-track"><i id="distanceBar" style="width:8%"></i></div></div>
+            <div class="health-row"><span>Flow sensor</span><span id="flowHealth">WAITING</span><div class="health-track"><i id="flowBar" style="width:8%"></i></div></div>
+            <div class="health-row"><span>Telemetry stream</span><span id="streamHealth">IDLE</span><div class="health-track"><i id="streamBar" style="width:8%"></i></div></div>
+          </div>
+        </article>
+
+        <article class="card control-card" id="controls">
+          <div class="card-head"><span class="card-label">04 / Control center</span><span class="card-icon">⚙</span></div>
+          <p class="control-intro">Prototype interaction panel for workshop demonstrations. These switches update the dashboard UI only; they do not actuate physical pumps or valves.</p>
+          <div class="control-row"><div><b>Filtration mode</b><small id="filterModeText">Automatic concept mode</small></div><label class="switch"><input type="checkbox" id="filterSwitch" checked><span class="slider"></span></label></div>
+          <div class="control-row"><div><b>Smart notifications</b><small>In-dashboard alert feedback</small></div><label class="switch"><input type="checkbox" id="alertSwitch" checked><span class="slider"></span></label></div>
+          <div class="control-row"><div><b>Ambient animation</b><small>Visual telemetry effects</small></div><label class="switch"><input type="checkbox" id="motionSwitch" checked><span class="slider"></span></label></div>
+          <div class="demo-note">⚠ Demo controls are not connected to hardware command topics.</div>
+        </article>
+
+        <article class="card log-card" id="logs">
+          <div class="card-head"><div><span class="card-label">05 / System console</span><div style="font-size:15px;font-weight:800;margin-top:6px">Telemetry event stream</div></div><span class="card-icon">⌘</span></div>
+          <div class="terminal" id="logBox"><div class="terminal-line"><span class="time">[SYSTEM]</span> WATER interface initialized.<span class="cursor"></span></div></div>
+          <div class="log-toolbar"><span class="metric-foot" id="logCount">1 event captured</span><button class="tiny-btn" id="clearLogs">Clear console</button></div>
+        </article>
+
+        <article class="card alert-card" id="alerts">
+          <div class="card-head"><div><span class="card-label">06 / Alert center</span><div style="font-size:15px;font-weight:800;margin-top:6px">Operational signals</div></div><span class="card-icon">♧</span></div>
+          <div class="alert-list" id="alertList">
+            <div class="alert-item"><div class="alert-symbol">!</div><div><b>Waiting for live telemetry</b><small>Connect the ESP32 node to begin receiving sensor readings.</small></div></div>
+            <div class="alert-item"><div class="alert-symbol">i</div><div><b>Prototype environment</b><small>Demo simulation can be enabled to preview the interface without hardware.</small></div></div>
+          </div>
+        </article>
+      </section>
+
+      <footer class="footer">
+        <div>© <span id="year"></span> <b>WATER AI</b> · Built for smarter water infrastructure.</div>
+        <div class="footer-links"><a href="#overview">Back to top ↑</a><a href="#logs">System console</a><a href="#" id="aboutLink">About prototype</a><span>v2.0.0 / WORKSHOP BUILD</span></div>
+      </footer>
     </div>
+  </main>
+</div>
 
-    <div class="chart-container">
-        <canvas class="sensor-chart" height="90"></canvas>
-    </div>
+<div class="toast-stack" id="toastStack"></div>
+<div class="modal-backdrop" id="settingsModal">
+  <div class="modal">
+    <h2>Connection settings</h2>
+    <p>Configure the public MQTT WebSocket broker and topic. Keep the topic identical to the one published by your ESP32 firmware.</p>
+    <div class="field"><label for="brokerInput">MQTT broker host</label><input id="brokerInput" value="broker.hivemq.com"></div>
+    <div class="field"><label for="portInput">WebSocket port</label><input id="portInput" type="number" value="8000"></div>
+    <div class="field"><label for="topicInput">Subscribe topic</label><input id="topicInput" value="esp32/water/sensors"></div>
+    <div class="modal-actions"><button class="soft-btn" id="cancelSettings">Cancel</button><button class="primary-btn" id="saveSettings">Save & reconnect</button></div>
+  </div>
+</div>
 
-    <div class="log-container log-box"></div>
+<script>
+(() => {
+  "use strict";
 
-    <script>
-        const mqttHost = "broker.hivemq.com";
-        const mqttPort = 8000;
-        const mqttTopic = "esp32/water/sensors";
+  // MQTT configuration. Public HiveMQ is suitable for demonstrations, not private production data.
+  let mqttHost = "broker.hivemq.com";
+  let mqttPort = 8000;
+  let mqttTopic = "esp32/water/sensors";
+  let client = null;
+  let reconnectTimer = null;
+  let manuallyDisconnected = false;
+  let simulationActive = false;
+  let simulationTimer = null;
+  let startedAt = Date.now();
+  let lastPacketAt = 0;
+  let eventCount = 1;
+  let latestDistance = null;
+  let latestFlow = null;
+  const MAX_POINTS = 36;
+  const $ = (selector) => document.querySelector(selector);
 
-        const rootStyles = getComputedStyle(document.documentElement);
-        const colBlue = rootStyles.getPropertyValue('--catppuccin-blue').trim();
-        const colGreen = rootStyles.getPropertyValue('--catppuccin-green').trim();
-        const colText = rootStyles.getPropertyValue('--catppuccin-text').trim();
-        const colSubtext = rootStyles.getPropertyValue('--catppuccin-subtext0').trim();
-        const colSurface = rootStyles.getPropertyValue('--catppuccin-surface0').trim();
-        const colBase = rootStyles.getPropertyValue('--catppuccin-base').trim();
+  const els = {
+    sidebar: $("#sidebar"), overlay: $("#mobileOverlay"), connection: $("#connectionPill"),
+    connectionText: $("#connectionText"), logBox: $("#logBox"), toastStack: $("#toastStack"),
+    alertList: $("#alertList"), tankWater: $("#tankWater")
+  };
 
-        const clientId = "web_dashboard_" + Math.random().toString(16).substring(2, 8);
-        const client = new Paho.MQTT.Client(mqttHost, Number(mqttPort), clientId);
-        const statusBadge = document.querySelector(".connection-status");
-        const valDistance = document.querySelector(".val-distance");
-        const valFlow = document.querySelector(".val-flow");
-        const valTime = document.querySelector(".val-time");
-        const logBox = document.querySelector(".log-box");
+  const css = getComputedStyle(document.documentElement);
+  const chartCtx = $("#sensorChart").getContext("2d");
+  const distanceGradient = chartCtx.createLinearGradient(0, 0, 0, 300);
+  distanceGradient.addColorStop(0, "rgba(137,180,250,.30)");
+  distanceGradient.addColorStop(1, "rgba(137,180,250,0)");
+  const flowGradient = chartCtx.createLinearGradient(0, 0, 0, 300);
+  flowGradient.addColorStop(0, "rgba(166,227,161,.22)");
+  flowGradient.addColorStop(1, "rgba(166,227,161,0)");
 
-        const ctx = document.querySelector('.sensor-chart').getContext('2d');
-        const sensorChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: [],
-                datasets: [
-                    {
-                        label: 'Distance (cm)',
-                        data: [],
-                        borderColor: colBlue,
-                        backgroundColor: 'rgba(137, 180, 250, 0.15)',
-                        borderWidth: 2,
-                        yAxisID: 'y',
-                        tension: 0.3,
-                        fill: true,
-                        pointBackgroundColor: colBlue,
-                        pointRadius: 2
-                    },
-                    {
-                        label: 'Flow Raw',
-                        data: [],
-                        borderColor: colGreen,
-                        backgroundColor: 'rgba(166, 227, 161, 0.15)',
-                        borderWidth: 2,
-                        yAxisID: 'y1',
-                        tension: 0.3,
-                        fill: true,
-                        pointBackgroundColor: colGreen,
-                        pointRadius: 2
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: { 
-                        type: 'linear', 
-                        position: 'left', 
-                        grid: { color: colSurface }, 
-                        ticks: { color: colSubtext },
-                        title: { display: true, text: 'Distance (cm)', color: colText } 
-                    },
-                    y1: { 
-                        type: 'linear', 
-                        position: 'right', 
-                        grid: { drawOnChartArea: false }, 
-                        ticks: { color: colSubtext },
-                        title: { display: true, text: 'Flow Raw', color: colText } 
-                    },
-                    x: {
-                        grid: { color: colSurface },
-                        ticks: { color: colSubtext }
-                    }
-                }
-            }
-        });
+  const chart = new Chart(chartCtx, {
+    type: "line",
+    data: { labels: [], datasets: [
+      { label: "Distance (cm)", data: [], yAxisID: "y", borderColor: css.getPropertyValue("--catppuccin-blue").trim(), backgroundColor: distanceGradient, fill: true, tension: .42, borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, pointHoverBackgroundColor: "#cba6f7" },
+      { label: "Flow raw", data: [], yAxisID: "y1", borderColor: css.getPropertyValue("--catppuccin-green").trim(), backgroundColor: flowGradient, fill: true, tension: .42, borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, pointHoverBackgroundColor: "#a6e3a1" }
+    ]},
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: { duration: 420 },
+      interaction: { mode: "index", intersect: false },
+      plugins: { legend: { display: false }, tooltip: { backgroundColor: "#11111b", borderColor: "rgba(205,214,244,.15)", borderWidth: 1, titleColor: "#cdd6f4", bodyColor: "#bac2de", padding: 12, displayColors: true } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: "#7f849c", maxTicksLimit: 7, font: { size: 9 } }, border: { display: false } },
+        y: { position: "left", grid: { color: "rgba(205,214,244,.055)", drawBorder: false }, ticks: { color: "#7f849c", font: { size: 9 } }, border: { display: false }, title: { display: true, text: "cm", color: "#7f849c", font: { size: 9 } } },
+        y1: { position: "right", grid: { display: false }, ticks: { color: "#7f849c", font: { size: 9 } }, border: { display: false } }
+      }
+    }
+  });
 
-        function logMessage(msg) {
-            const timeStr = new Date().toLocaleTimeString();
-            logBox.innerHTML += `[${timeStr}] ${msg}<br>`;
-            logBox.scrollTop = logBox.scrollHeight;
+  function toast(title, message) {
+    if (!$("#alertSwitch").checked && title !== "Connection") return;
+    const item = document.createElement("div");
+    item.className = "toast";
+    const strong = document.createElement("b"); strong.textContent = title;
+    const small = document.createElement("small"); small.textContent = message;
+    item.append(strong, small); els.toastStack.append(item);
+    setTimeout(() => item.remove(), 4200);
+  }
+
+  function logMessage(message, type = "") {
+    const line = document.createElement("div");
+    line.className = `terminal-line ${type}`;
+    const time = document.createElement("span"); time.className = "time"; time.textContent = `[${new Date().toLocaleTimeString("id-ID")}] `;
+    line.append(time, document.createTextNode(message));
+    els.logBox.append(line);
+    const cursor = els.logBox.querySelector(".cursor"); if (cursor) cursor.remove();
+    const newCursor = document.createElement("span"); newCursor.className = "cursor"; line.append(newCursor);
+    while (els.logBox.children.length > 100) els.logBox.firstElementChild.remove();
+    els.logBox.scrollTop = els.logBox.scrollHeight;
+    eventCount++; $("#logCount").textContent = `${eventCount} events captured`;
+  }
+
+  function setConnection(connected, label) {
+    els.connection.classList.toggle("connected", connected);
+    els.connectionText.textContent = label || (connected ? "CONNECTED" : "DISCONNECTED");
+    $("#mqttHealth").textContent = connected ? "ONLINE" : "OFFLINE";
+    $("#mqttBar").style.width = connected ? "100%" : "8%";
+    $("#nodeState").textContent = connected ? "Receiving MQTT telemetry" : "Waiting for telemetry";
+  }
+
+  function addAlert(title, description, symbol = "!") {
+    const item = document.createElement("div"); item.className = "alert-item";
+    const icon = document.createElement("div"); icon.className = "alert-symbol"; icon.textContent = symbol;
+    const body = document.createElement("div"); const strong = document.createElement("b"); strong.textContent = title;
+    const small = document.createElement("small"); small.textContent = description;
+    body.append(strong, small); item.append(icon, body); els.alertList.prepend(item);
+    while (els.alertList.children.length > 5) els.alertList.lastElementChild.remove();
+    $("#alertCount").textContent = String(els.alertList.children.length).padStart(2, "0");
+  }
+
+  // Expected firmware payload example:
+  // {"timestamp": 1730000000, "distance_cm": 42.5, "flow_raw": 120}
+  // The parser also accepts water_distance as an alias for distance_cm.
+  function handleTelemetry(data, source = "MQTT") {
+    const distance = Number(data.distance_cm ?? data.water_distance ?? data.distance);
+    const flow = Number(data.flow_raw ?? data.flow ?? data.flow_rate);
+    if (!Number.isFinite(distance) || !Number.isFinite(flow)) {
+      logMessage("Payload ignored: distance/flow field is missing or not numeric.", "warn");
+      return;
+    }
+    latestDistance = distance; latestFlow = flow; lastPacketAt = Date.now();
+    const timestamp = Number(data.timestamp);
+    const timeLabel = Number.isFinite(timestamp) && timestamp > 0
+      ? new Date(timestamp < 1e12 ? timestamp * 1000 : timestamp).toLocaleTimeString("id-ID")
+      : new Date().toLocaleTimeString("id-ID");
+
+    // Configure these values to match the actual tank geometry and calibration.
+    const TANK_EMPTY_DISTANCE_CM = 100;
+    const TANK_FULL_DISTANCE_CM = 10;
+    const level = Math.max(0, Math.min(100, ((TANK_EMPTY_DISTANCE_CM - distance) / (TANK_EMPTY_DISTANCE_CM - TANK_FULL_DISTANCE_CM)) * 100));
+
+    $("#distanceMetric").innerHTML = `${distance.toFixed(1)}<small> cm</small>`;
+    $("#flowMetric").textContent = Number.isInteger(flow) ? flow : flow.toFixed(2);
+    $("#levelMetric").innerHTML = `${level.toFixed(0)}<small> %</small>`;
+    $("#tankPercent").textContent = `${level.toFixed(0)}%`;
+    $("#tankDistance").textContent = `${distance.toFixed(1)} cm`;
+    els.tankWater.style.height = `${level}%`;
+    $("#tankStatus").textContent = level < 20 ? "LOW LEVEL" : level > 85 ? "TANK NEAR FULL" : "LEVEL NORMAL";
+    $("#lastUpdated").textContent = `Updated ${timeLabel}`;
+    $("#dataMode").textContent = `${source} · packet received`;
+    $("#aiState").textContent = "ANALYZING";
+    $("#signalQuality").textContent = "LIVE INPUT";
+    $("#distanceHealth").textContent = "ONLINE"; $("#distanceBar").style.width = "100%";
+    $("#flowHealth").textContent = "ONLINE"; $("#flowBar").style.width = "100%";
+    $("#streamHealth").textContent = "ACTIVE"; $("#streamBar").style.width = "100%";
+
+    chart.data.labels.push(timeLabel);
+    chart.data.datasets[0].data.push(distance);
+    chart.data.datasets[1].data.push(flow);
+    if (chart.data.labels.length > MAX_POINTS) {
+      chart.data.labels.shift(); chart.data.datasets.forEach(ds => ds.data.shift());
+    }
+    chart.update("none");
+    logMessage(`${source} payload → distance=${distance.toFixed(1)} cm | flow=${flow}`);
+    if (level < 20) addAlert("Low water level detected", `Estimated tank level is ${level.toFixed(0)}%. Check the water supply.`, "!");
+    else if (level > 95) addAlert("Tank nearly full", "Estimated tank level is above 95%.", "↑");
+  }
+
+  function mqttConnect() {
+    if (simulationActive || typeof Paho === "undefined") return;
+    clearTimeout(reconnectTimer);
+    manuallyDisconnected = false;
+    try {
+      if (client && client.isConnected()) client.disconnect();
+      const clientId = "WATER_web_" + Math.random().toString(16).slice(2, 10);
+      client = new Paho.MQTT.Client(mqttHost, Number(mqttPort), "/mqtt", clientId);
+      client.onConnectionLost = (response) => {
+        setConnection(false, "CONNECTION LOST");
+        logMessage(`MQTT connection lost: ${response.errorMessage || "unknown reason"}`, "error");
+        if (!manuallyDisconnected && !simulationActive) reconnectTimer = setTimeout(mqttConnect, 5000);
+      };
+      client.onMessageArrived = (message) => {
+        try { handleTelemetry(JSON.parse(message.payloadString), "MQTT"); }
+        catch (error) { logMessage(`Invalid JSON payload: ${error.message}`, "error"); }
+      };
+      setConnection(false, "CONNECTING");
+      logMessage(`Connecting to ws://${mqttHost}:${mqttPort}/mqtt ...`);
+      client.connect({
+        timeout: 8, useSSL: false, cleanSession: true, keepAliveInterval: 30,
+        onSuccess: () => {
+          setConnection(true, "CONNECTED");
+          client.subscribe(mqttTopic, { qos: 0 });
+          logMessage(`Connected. Subscribed to ${mqttTopic}`);
+          toast("MQTT connected", "Live sensor stream is ready.");
+        },
+        onFailure: (error) => {
+          setConnection(false, "BROKER ERROR");
+          logMessage(`MQTT connect failed: ${error.errorMessage || "check broker / port / network"}`, "error");
+          if (!manuallyDisconnected && !simulationActive) reconnectTimer = setTimeout(mqttConnect, 7000);
         }
+      });
+    } catch (error) {
+      setConnection(false, "MQTT ERROR"); logMessage(error.message, "error");
+    }
+  }
 
-        function mqttConnect() {
-            logMessage(`Connecting to wss://${mqttHost}:${mqttPort}/mqtt...`);
-            client.connect({
-                timeout: 3,
-                useSSL: false,
-                onSuccess: function () {
-                    statusBadge.innerText = "Connected";
-                    statusBadge.className = "status-badge connection-status connected";
-                    logMessage("Connected to MQTT broker!");
-                    client.subscribe(mqttTopic);
-                    logMessage(`Subscribed to topic: ${mqttTopic}`);
-                },
-                onFailure: function (message) {
-                    statusBadge.innerText = "Connection Error";
-                    statusBadge.className = "status-badge connection-status";
-                    logMessage(`Connection error: ${message.errorMessage}`);
-                    setTimeout(mqttConnect, 5000);
-                }
-            });
-        }
+  function startSimulation() {
+    if (simulationActive) {
+      simulationActive = false; clearInterval(simulationTimer);
+      $("#simulationBtn").textContent = "▶  Enable demo simulation";
+      $("#dataMode").textContent = "Simulation stopped";
+      logMessage("Demo simulation stopped.", "warn");
+      mqttConnect(); return;
+    }
+    simulationActive = true; manuallyDisconnected = true;
+    clearTimeout(reconnectTimer);
+    if (client && client.isConnected()) client.disconnect();
+    setConnection(false, "DEMO MODE");
+    $("#simulationBtn").textContent = "Ⅱ  Stop demo simulation";
+    addAlert("Demo simulation enabled", "Synthetic readings are being generated locally; these are not hardware measurements.", "◌");
+    logMessage("Local demo simulation enabled. Values are synthetic.", "warn");
+    let tick = 0;
+    simulationTimer = setInterval(() => {
+      tick++;
+      const distance = 38 + Math.sin(tick / 7) * 12 + Math.sin(tick / 2.8) * 2.5;
+      const flow = Math.max(0, 110 + Math.sin(tick / 3.5) * 38 + Math.random() * 12);
+      handleTelemetry({ distance_cm: distance, flow_raw: Math.round(flow), timestamp: Date.now() / 1000 }, "DEMO");
+      setConnection(true, "DEMO SIMULATION");
+      $("#mqttHealth").textContent = "SIMULATED";
+      $("#aiState").textContent = "DEMO ANALYSIS";
+      $("#signalQuality").textContent = "SYNTHETIC";
+    }, 1300);
+  }
 
-        client.onConnectionLost = function (responseObject) {
-            statusBadge.innerText = "Disconnected";
-            statusBadge.className = "status-badge connection-status";
-            logMessage(`Connection lost: ${responseObject.errorMessage}`);
-            setTimeout(mqttConnect, 5000);
-        };
+  $("#menuBtn").addEventListener("click", () => { els.sidebar.classList.add("open"); els.overlay.classList.add("show"); });
+  els.overlay.addEventListener("click", () => { els.sidebar.classList.remove("open"); els.overlay.classList.remove("show"); });
+  document.querySelectorAll(".nav-link[href^='#']").forEach(link => link.addEventListener("click", () => {
+    document.querySelectorAll(".nav-link").forEach(item => item.classList.remove("active"));
+    link.classList.add("active"); els.sidebar.classList.remove("open"); els.overlay.classList.remove("show");
+  }));
+  $("#reconnectBtn").addEventListener("click", () => { if (simulationActive) startSimulation(); manuallyDisconnected = false; mqttConnect(); toast("Reconnecting", "Attempting to reconnect to MQTT broker."); });
+  $("#simulationBtn").addEventListener("click", startSimulation);
+  $("#filterSwitch").addEventListener("change", (event) => {
+    $("#filterModeText").textContent = event.target.checked ? "Automatic concept mode" : "Manual concept mode";
+    toast("Filtration mode updated", event.target.checked ? "Auto mode selected in prototype UI." : "Manual mode selected in prototype UI.");
+    logMessage(`UI control changed: filtration mode ${event.target.checked ? "AUTO" : "MANUAL"}.`, "warn");
+  });
+  $("#alertSwitch").addEventListener("change", e => toast("Notifications", e.target.checked ? "Dashboard notifications enabled." : "Dashboard notifications muted."));
+  $("#motionSwitch").addEventListener("change", e => { document.body.classList.toggle("reduce-motion", !e.target.checked); document.querySelectorAll(".orb,.orb-ring,.wave,.bubble").forEach(el => el.style.animationPlayState = e.target.checked ? "running" : "paused"); });
+  $("#clearLogs").addEventListener("click", () => { els.logBox.replaceChildren(); eventCount = 0; $("#logCount").textContent = "0 events captured"; logMessage("Console cleared by operator."); });
+  $("#notifyBtn").addEventListener("click", () => { document.querySelector("#alerts").scrollIntoView({ behavior: "smooth" }); toast("Alert center", "Showing recent operational signals."); });
+  $("#themeBtn").addEventListener("click", () => {
+    const root = document.documentElement;
+    const light = root.dataset.theme !== "light";
+    root.dataset.theme = light ? "light" : "dark";
+    if (light) {
+      root.style.setProperty("--bg", "#e9edf7"); root.style.setProperty("--panel", "rgba(255,255,255,.8)");
+      root.style.setProperty("--text", "#25263a"); root.style.setProperty("--muted", "#666d86");
+      document.body.style.color = "#25263a";
+      document.querySelectorAll(".card").forEach(card => { card.style.background = "rgba(255,255,255,.78)"; card.style.borderColor = "rgba(40,45,75,.12)"; });
+      toast("Light appearance", "Switched to the alternate presentation mode.");
+    } else {
+      root.style.setProperty("--bg", "var(--catppuccin-crust)"); root.style.setProperty("--text", "var(--catppuccin-text)");
+      root.style.setProperty("--muted", "var(--catppuccin-subtext0)"); document.body.style.color = "var(--text)";
+      document.querySelectorAll(".card").forEach(card => { card.style.background = ""; card.style.borderColor = ""; });
+      toast("Dark appearance", "Restored the Catppuccin dark interface.");
+    }
+  });
 
-        client.onMessageArrived = function (message) {
-            try {
-                const data = JSON.parse(message.payloadString);
-                const timeStr = new Date(data.timestamp * 1000).toLocaleTimeString();
+  function exportCSV() {
+    const rows = [["time", "distance_cm", "flow_raw"], ...chart.data.labels.map((label, i) => [label, chart.data.datasets[0].data[i] ?? "", chart.data.datasets[1].data[i] ?? ""])];
+    const csv = rows.map(row => row.map(value => `"${String(value).replaceAll('"', '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob); const a = document.createElement("a");
+    a.href = url; a.download = `WATER-telemetry-${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(url);
+    toast("Export complete", "The currently buffered chart readings were exported as CSV.");
+  }
+  $("#exportLink").addEventListener("click", e => { e.preventDefault(); exportCSV(); });
+  $("#settingsLink").addEventListener("click", e => { e.preventDefault(); $("#brokerInput").value = mqttHost; $("#portInput").value = mqttPort; $("#topicInput").value = mqttTopic; $("#settingsModal").classList.add("open"); });
+  $("#cancelSettings").addEventListener("click", () => $("#settingsModal").classList.remove("open"));
+  $("#settingsModal").addEventListener("click", e => { if (e.target.id === "settingsModal") e.currentTarget.classList.remove("open"); });
+  $("#saveSettings").addEventListener("click", () => {
+    const host = $("#brokerInput").value.trim(), port = Number($("#portInput").value), topic = $("#topicInput").value.trim();
+    if (!host || !Number.isInteger(port) || port < 1 || port > 65535 || !topic) { toast("Invalid settings", "Check the broker, port and topic values."); return; }
+    mqttHost = host; mqttPort = port; mqttTopic = topic; $("#settingsModal").classList.remove("open");
+    if (simulationActive) startSimulation();
+    manuallyDisconnected = false; mqttConnect(); toast("Settings saved", `Subscribing to ${mqttTopic}`);
+  });
+  $("#aboutLink").addEventListener("click", e => { e.preventDefault(); toast("About WATER AI", "Workshop prototype. Verify all sensor calibration, inference and hardware-control claims against the actual implementation."); });
 
-                valDistance.innerText = `${data.distance_cm.toFixed(1)} cm`;
-                valFlow.innerText = data.flow_raw;
-                valTime.innerText = timeStr;
+  // Keyboard shortcut: Ctrl/Cmd + K opens connection settings.
+  document.addEventListener("keydown", e => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); $("#settingsLink").click(); }
+    if (e.key === "Escape") $("#settingsModal").classList.remove("open");
+  });
 
-                if (sensorChart.data.labels.length > 20) {
-                    sensorChart.data.labels.shift();
-                    sensorChart.data.datasets[0].data.shift();
-                    sensorChart.data.datasets[1].data.shift();
-                }
+  // Local uptime display; does not represent ESP32 uptime.
+  setInterval(() => {
+    const seconds = Math.floor((Date.now() - startedAt) / 1000);
+    $("#uptimeMetric").textContent = `${String(Math.floor(seconds / 60)).padStart(2,"0")}:${String(seconds % 60).padStart(2,"0")}`;
+    if (lastPacketAt && Date.now() - lastPacketAt > 12000 && !simulationActive) {
+      $("#streamHealth").textContent = "STALE"; $("#streamBar").style.width = "25%";
+    }
+  }, 1000);
 
-                sensorChart.data.labels.push(timeStr);
-                sensorChart.data.datasets[0].data.push(data.distance_cm);
-                sensorChart.data.datasets[1].data.push(data.flow_raw);
-                sensorChart.update();
-
-                logMessage(`Received payload -> Distance: ${data.distance_cm}cm, Flow: ${data.flow_raw}`);
-            } catch (e) {
-                logMessage(`Error parsing incoming JSON: ${e.message}`);
-            }
-        };
-
-        mqttConnect();
-    </script>
+  $("#year").textContent = new Date().getFullYear();
+  logMessage(`Dashboard ready. Broker=${mqttHost}:${mqttPort}, topic=${mqttTopic}`);
+  mqttConnect();
+})();
+</script>
 </body>
 </html>
-
