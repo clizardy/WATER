@@ -7,6 +7,7 @@
     <title>WATER AI — Creative Intelligence</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -244,6 +245,15 @@
           <div><div class="eyebrow">WATER INFRASTRUCTURE / CONTROL ROOM</div><div class="page-title">Command dashboard</div></div>
         </div>
         <div class="top-actions">
+          <button
+              class="share-btn"
+              id="shareOpenBtn"
+              type="button"
+              title="Share dashboard link"
+            >
+              <span class="share-icon">⌯</span>
+              <span>SHARE</span>
+            </button>
           <div class="connection-pill" id="connectionPill"><span class="dot"></span><span id="connectionText">DISCONNECTED</span></div>
           <button class="icon-btn" id="notifyBtn" title="Notifications">♧</button>
           <button class="icon-btn" id="themeBtn" title="Toggle visual mode">◐</button>
