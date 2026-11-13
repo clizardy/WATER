@@ -492,7 +492,7 @@
 
     // MQTT configuration. Public HiveMQ is suitable for demonstrations, not private production data.
     let mqttHost = "broker.hivemq.com";
-    let mqttPort = 8000;
+    let mqttPort = 8884;
     let mqttTopic = "esp32/water/sensors";
     let client = null;
     let reconnectTimer = null;
@@ -649,7 +649,7 @@
         setConnection(false, "CONNECTING");
         logMessage(`Connecting to wss://${mqttHost}:${mqttPort}/mqtt ...`);
         client.connect({
-          timeout: 8, useSSL: false, cleanSession: true, keepAliveInterval: 30,
+          timeout: 8, useSSL: true, cleanSession: true, keepAliveInterval: 30,
           onSuccess: () => {
             setConnection(true, "CONNECTED");
             client.subscribe(mqttTopic, { qos: 0 });
