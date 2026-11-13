@@ -492,7 +492,7 @@
 
     // MQTT configuration. Public HiveMQ is suitable for demonstrations, not private production data.
     let mqttHost = "broker.hivemq.com";
-    let mqttPort = 1883;
+    let mqttPort = 8000;
     let mqttTopic = "esp32/water/sensors";
     let client = null;
     let reconnectTimer = null;
@@ -647,7 +647,7 @@
           catch (error) { logMessage(`Invalid JSON payload: ${error.message}`, "error"); }
         };
         setConnection(false, "CONNECTING");
-        logMessage(`Connecting to ws://${mqttHost}:${mqttPort}/mqtt ...`);
+        logMessage(`Connecting to wss://${mqttHost}:${mqttPort}/mqtt ...`);
         client.connect({
           timeout: 8, useSSL: false, cleanSession: true, keepAliveInterval: 30,
           onSuccess: () => {
