@@ -282,7 +282,7 @@
 
           <article class="card chart-card">
             <div class="card-head"><div><div class="card-label">01B / Sensor telemetry</div><div style="font-size:15px;font-weight:800;margin-top:6px">Signal overview</div></div><span class="card-icon">⌁</span></div>
-            <div class="chart-legend"><span><i class="legend-dot" style="background:var(--catppuccin-blue)"></i>Distance</span><span><i class="legend-dot" style="background:var(--catppuccin-green)"></i>Flow raw</span></div>
+            <div class="chart-legend"><span><i class="legend-dot" style="background:var(--catppuccin-blue)"></i>Distance</span><span><i class="legend-dot" style="background:var(--catppuccin-green)"></i>Flow lpm</span></div>
             <div class="chart-wrap"><canvas id="sensorChart"></canvas></div>
           </article>
 
@@ -525,8 +525,8 @@
     const chart = new Chart(chartCtx, {
       type: "line",
       data: { labels: [], datasets: [
-        { label: "Distance (cm)", data: [], yAxisID: "y", borderColor: css.getPropertyValue("--catppuccin-blue").trim(), backgroundColor: distanceGradient, fill: true, tension: .42, borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, pointHoverBackgroundColor: "#cba6f7" },
-        { label: "Flow raw", data: [], yAxisID: "y1", borderColor: css.getPropertyValue("--catppuccin-green").trim(), backgroundColor: flowGradient, fill: true, tension: .42, borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, pointHoverBackgroundColor: "#a6e3a1" }
+        { label: "Distance (mm)", data: [], yAxisID: "y", borderColor: css.getPropertyValue("--catppuccin-blue").trim(), backgroundColor: distanceGradient, fill: true, tension: .42, borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, pointHoverBackgroundColor: "#cba6f7" },
+        { label: "Flow LPM", data: [], yAxisID: "y1", borderColor: css.getPropertyValue("--catppuccin-green").trim(), backgroundColor: flowGradient, fill: true, tension: .42, borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, pointHoverBackgroundColor: "#a6e3a1" }
       ]},
       options: {
         responsive: true, maintainAspectRatio: false, animation: { duration: 420 },
@@ -582,11 +582,11 @@
     }
 
     // Expected firmware payload example:
-    // {"timestamp": 1730000000, "distance_cm": 42.5, "flow_raw": 120}
-    // The parser also accepts water_distance as an alias for distance_cm.
+    // {"timestamp": 1730000000, "distance_mm": 42.5, "flow_lpm": 120}
+    // The parser also accepts water_distance as an alias for distance_mm.
     function handleTelemetry(data, source = "MQTT") {
-      const distance = Number(data.distance_cm ?? data.water_distance ?? data.distance);
-      const flow = Number(data.flow_raw ?? data.flow ?? data.flow_rate);
+      const distance = Number(data.distance_mm ?? data.water_distance ?? data.distance);
+      const flow = Number(data.flow_lpm ?? data.flow ?? data.flow_rate);
       if (!Number.isFinite(distance) || !Number.isFinite(flow)) {
         logMessage("Payload ignored: distance/flow field is missing or not numeric.", "warn");
         return;
@@ -687,7 +687,7 @@
         tick++;
         const distance = 38 + Math.sin(tick / 7) * 12 + Math.sin(tick / 2.8) * 2.5;
         const flow = Math.max(0, 110 + Math.sin(tick / 3.5) * 38 + Math.random() * 12);
-        handleTelemetry({ distance_cm: distance, flow_raw: Math.round(flow), timestamp: Date.now() / 1000 }, "DEMO");
+        handleTelemetry({ distance_mm: distance, flow_lpm: Math.round(flow), timestamp: Date.now() / 1000 }, "DEMO");
         setConnection(true, "DEMO SIMULATION");
         $("#mqttHealth").textContent = "SIMULATED";
         $("#aiState").textContent = "DEMO ANALYSIS";
@@ -731,7 +731,7 @@
     });
 
     function exportCSV() {
-      const rows = [["time", "distance_cm", "flow_raw"], ...chart.data.labels.map((label, i) => [label, chart.data.datasets[0].data[i] ?? "", chart.data.datasets[1].data[i] ?? ""])];
+      const rows = [["time", "distance_mm", "flow_lpm"], ...chart.data.labels.map((label, i) => [label, chart.data.datasets[0].data[i] ?? "", chart.data.datasets[1].data[i] ?? ""])];
       const csv = rows.map(row => row.map(value => `"${String(value).replaceAll('"', '""')}"`).join(",")).join("\n");
       const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
       const url = URL.createObjectURL(blob); const a = document.createElement("a");
@@ -844,12 +844,12 @@
     updateChecks(); updateAnalytics(); updateVolume(); updateDaily();
     $("#refreshAnalytics").addEventListener("click",()=>{updateAnalytics();toastExtra("Analytics refreshed","Statistics recalculated from the current browser buffer.");});
     $("#downloadJson").addEventListener("click",()=>{
-      const d=readChart(); saveBlob(`WATER-session-${new Date().toISOString().slice(0,10)}.json`,JSON.stringify({exported_at:new Date().toISOString(),source:$("#dataMode").textContent,readings:d.labels.map((time,i)=>({time,distance_cm:d.distance[i],flow_raw:d.flow[i]}))},null,2),"application/json");
+      const d=readChart(); saveBlob(`WATER-session-${new Date().toISOString().slice(0,10)}.json`,JSON.stringify({exported_at:new Date().toISOString(),source:$("#dataMode").textContent,readings:d.labels.map((time,i)=>({time,distance_mm:d.distance[i],flow_lpm:d.flow[i]}))},null,2),"application/json");
       toastExtra("JSON exported","Session buffer berhasil disimpan.");
     });
     $("#snapshotBtn").addEventListener("click",()=>{
       const d=readChart(), last=d.distance.length-1;
-      const snapshot={captured_at:new Date().toISOString(),water_level:$("#levelMetric").textContent,distance_cm:last>=0?d.distance[last]:null,flow_raw:last>=0?d.flow[last]:null,mode:$("#dataMode").textContent,connection:$("#connectionText").textContent};
+      const snapshot={captured_at:new Date().toISOString(),water_level:$("#levelMetric").textContent,distance_mm:last>=0?d.distance[last]:null,flow_lpm:last>=0?d.flow[last]:null,mode:$("#dataMode").textContent,connection:$("#connectionText").textContent};
       saveBlob(`WATER-snapshot-${Date.now()}.json`,JSON.stringify(snapshot,null,2),"application/json");
       toastExtra("Snapshot captured","Ringkasan kondisi saat ini diekspor ke JSON.");
     });

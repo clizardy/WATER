@@ -88,11 +88,11 @@ void loop() {
   
   time_t epochTime = getTime();
   float distance = getDistanceToWater();
-  int flowRaw = analogRead(PIN_FLOW_SENSOR);
+  int flowLPM = getFlowRate();
   
-  sendAlert(distance, flowRaw);
-  logToSD(epochTime, distance, flowRaw);
-  mqttPublish(epochTime, distance, flowRaw);
+  sendAlert(distance, flowLPM);
+  logToSD(epochTime, distance, flowLPM);
+  mqttPublish(epochTime, distance, flowLPM);
 }
 
 void mqttPublish(time_t epochTime, float distance, int flow) {
@@ -101,8 +101,8 @@ void mqttPublish(time_t epochTime, float distance, int flow) {
   }
 
   String payloadStr = "{ \"timestamp\": " + String(epochTime) + 
-                      ", \"distance_cm\": " + String(distance) + 
-                      ", \"flow_raw\": " + String(flow) + " }";
+                      ", \"distance_mm\": " + String(distance) + 
+                      ", \"flow_lpm\": " + String(flow) + " }";
   const uint8_t* payload = (uint8_t*) payloadStr.c_str();
   
   // QoS 1
@@ -186,16 +186,16 @@ void logToSD(time_t epochTime, float distance, int flow) {
     logFile.println(buffer);
     logFile.close();
     
-    Serial.printf("[LOG] Timestamp: %ld | Distance: %.2f cm | Flow Raw: %d\n", epochTime, distance, flow);
+    Serial.printf("[LOG] Timestamp: %ld | Distance: %.2f mm | Flow LPM: %d\n", epochTime, distance, flow);
   } else {
     Serial.println("[ERROR] Failed to open file.");
   }
 }
 
-void sendAlert(float distance, int flowRaw) {
+void sendAlert(float distance, int flowLPM) {
   if (!getAiToggleValue()) { return; }
 
-  std::vector<float> sample = {distance, (float)flowRaw};
+  std::vector<float> sample = {distance, (float)flowLPM};
   float score = iforest.score(sample);
 
   Serial.printf("[IFOREST] Anomaly Score: %.3f\n", score);
@@ -228,7 +228,7 @@ void ensureFileExists(const char* path, const char* content) {
 
 void initFiles() {
   ensureFileExists(aiToggleDir, "false");
-  ensureFileExists(sensorLogDir, "Timestamp,Distance(cm),Flow(Raw)");
+  ensureFileExists(sensorLogDir, "Timestamp,Distance(mm),Flow(LPM)");
   ensureFileExists(trainingWindowDir, "0,0");
 }
 
