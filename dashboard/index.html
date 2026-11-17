@@ -199,6 +199,67 @@
 @media(max-width:1000px){.extra-card{grid-column:span 6}.extra-card.wide{grid-column:span 12}}
 @media(max-width:600px){.extra-card,.extra-card.wide,.extra-card.full{grid-column:span 12}.stat-strip{grid-template-columns:1fr 1fr}.feature-list{grid-template-columns:1fr}.section-heading{align-items:flex-start;flex-direction:column}}
 
+
+/* SHARE EXPERIENCE — responsive, branded and keyboard accessible */
+.top-actions{min-width:0}
+.share-btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  min-height:42px;padding:0 17px;border:1px solid rgba(137,180,250,.32);
+  border-radius:13px;background:linear-gradient(135deg,rgba(137,180,250,.17),rgba(203,166,247,.15));
+  color:var(--catppuccin-text);font-size:10px;font-weight:900;letter-spacing:.12em;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 7px 22px rgba(0,0,0,.15);
+  transition:transform .2s ease,border-color .2s ease,background .2s ease,box-shadow .2s ease;
+}
+.share-btn:hover{transform:translateY(-2px);border-color:rgba(137,220,235,.7);background:linear-gradient(135deg,rgba(137,220,235,.23),rgba(203,166,247,.22));box-shadow:0 9px 25px rgba(137,180,250,.14)}
+.share-btn:active{transform:translateY(0) scale(.98)}
+.share-btn:focus-visible,.share-modal button:focus-visible,.share-url:focus-visible{outline:2px solid var(--catppuccin-sky);outline-offset:3px}
+.share-icon{width:23px;height:23px;display:grid;place-items:center;border-radius:8px;background:rgba(137,220,235,.15);font-size:15px;color:var(--catppuccin-sky)}
+.share-backdrop{position:fixed;inset:0;z-index:130;display:none;place-items:center;padding:18px;background:rgba(5,7,15,.76);backdrop-filter:blur(12px)}
+.share-backdrop.open{display:grid}
+.share-modal{width:min(440px,100%);padding:24px;border:1px solid rgba(137,180,250,.22);border-radius:23px;background:linear-gradient(155deg,#24243a,#171725 75%);box-shadow:0 28px 90px rgba(0,0,0,.55);animation:sharePop .22s ease-out}
+@keyframes sharePop{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:none}}
+.share-modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:15px}
+.share-modal-head h2{margin:4px 0 7px;font-size:20px;letter-spacing:-.04em}
+.share-modal-head p{margin:0;color:var(--muted);font-size:11px;line-height:1.6}
+.share-close{width:34px;height:34px;flex:none;border:1px solid var(--line);border-radius:10px;background:rgba(205,214,244,.06);color:var(--muted);font-size:18px}
+.share-qr-wrap{display:grid;place-items:center;margin:20px auto 15px;padding:15px;width:190px;height:190px;border-radius:18px;background:#fff;box-shadow:0 12px 35px rgba(0,0,0,.22)}
+#shareQr{width:160px;height:160px;display:grid;place-items:center}
+/* QR Code - prevent duplicate rendering */
+#shareQr {
+    width: 160px;
+    height: 160px;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+}
+
+#shareQr img {
+    display: block !important;
+    width: 160px !important;
+    height: 160px !important;
+    max-width: 100%;
+    object-fit: contain;
+}
+
+#shareQr canvas {
+    display: none !important;
+}
+.share-url-label{display:block;margin:15px 0 7px;color:var(--muted);font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.share-url-row{display:flex;gap:8px}
+.share-url{width:100%;min-width:0;padding:11px 12px;border:1px solid var(--line);border-radius:11px;background:rgba(10,12,20,.7);color:var(--catppuccin-text);font:10px "DM Mono",monospace;outline:none}
+.share-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}
+.share-action{min-height:42px;border:1px solid var(--line);border-radius:11px;background:rgba(205,214,244,.06);color:var(--text);font-size:10px;font-weight:800;transition:.2s}
+.share-action:hover{border-color:rgba(137,220,235,.4);background:rgba(137,220,235,.1)}
+.share-action.primary{border:0;background:linear-gradient(110deg,var(--catppuccin-blue),var(--catppuccin-mauve));color:#171725}
+.share-hint{margin:12px 0 0;color:var(--muted);font-size:9px;line-height:1.6;text-align:center}
+@media(max-width:600px){
+ .share-btn{min-height:38px;padding:0 10px;gap:6px;font-size:9px}
+ .share-icon{width:20px;height:20px}
+ .share-modal{padding:19px}
+ .share-qr-wrap{width:178px;height:178px}
+ #shareQr,#shareQr img,#shareQr canvas{width:150px!important;height:150px!important}
+}
+
     </style>
   </head>
   <body>
@@ -494,6 +555,32 @@
       <div class="field"><label for="topicInput">Subscribe topic</label><input id="topicInput" value="esp32/water/sensors"></div>
       <div class="modal-actions"><button class="soft-btn" id="cancelSettings">Cancel</button><button class="primary-btn" id="saveSettings">Save & reconnect</button></div>
     </div>
+  </div>
+
+
+  <div class="share-backdrop" id="shareBackdrop" aria-hidden="true">
+    <section class="share-modal" role="dialog" aria-modal="true" aria-labelledby="shareTitle">
+      <div class="share-modal-head">
+        <div>
+          <div class="eyebrow">WATER / QUICK ACCESS</div>
+          <h2 id="shareTitle">Share dashboard</h2>
+          <p>Bagikan akses dashboard WATER ke pengunjung melalui tautan atau QR code.</p>
+        </div>
+        <button class="share-close" id="shareCloseBtn" type="button" aria-label="Tutup">×</button>
+      </div>
+      <div class="share-qr-wrap"><div id="shareQr" aria-label="QR code tautan dashboard"></div></div>
+      <label class="share-url-label" for="shareUrlInput">Dashboard URL</label>
+      <div class="share-url-row">
+        <input class="share-url" id="shareUrlInput" type="text" readonly value="">
+      </div>
+      <div class="share-actions">
+        <button class="share-action primary" id="copyShareBtn" type="button">▣ &nbsp; Copy link</button>
+        <button class="share-action" id="nativeShareBtn" type="button">↗ &nbsp; Share link</button>
+        <button class="share-action" id="downloadQrBtn" type="button">⇩ &nbsp; Download QR</button>
+        <button class="share-action" id="openShareLinkBtn" type="button">↗ &nbsp; Open link</button>
+      </div>
+      <p class="share-hint" id="shareHint">QR code berisi alamat halaman dashboard yang sedang dibuka.</p>
+    </section>
   </div>
 
   <script>
@@ -905,5 +992,126 @@
   })();
 
   </script>
+
+<script>
+(() => {
+  "use strict";
+  const $ = (selector) => document.querySelector(selector);
+  const backdrop = $("#shareBackdrop");
+  const urlInput = $("#shareUrlInput");
+  const qrBox = $("#shareQr");
+  const hint = $("#shareHint");
+  let currentUrl = "";
+
+  function toastShare(title, message) {
+    const stack = $("#toastStack");
+    if (!stack) { alert(`${title}\n${message}`); return; }
+    const item = document.createElement("div");
+    item.className = "toast";
+    const strong = document.createElement("b");
+    const small = document.createElement("small");
+    strong.textContent = title;
+    small.textContent = message;
+    item.append(strong, small);
+    stack.append(item);
+    setTimeout(() => item.remove(), 3500);
+  }
+
+  function makeQr(url) {
+    qrBox.replaceChildren();
+    if (typeof window.QRCode !== "undefined") {
+      new QRCode(qrBox, {
+        text: url, width: 160, height: 160,
+        colorDark: "#11111b", colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel ? QRCode.CorrectLevel.H : 2
+      });
+      hint.textContent = "Scan QR code menggunakan kamera ponsel untuk membuka dashboard.";
+    } else {
+      qrBox.textContent = "QR unavailable";
+      qrBox.style.color = "#11111b";
+      hint.textContent = "Library QR belum termuat. Gunakan tombol Copy link.";
+    }
+  }
+
+  function openShare() {
+    currentUrl = window.location.href;
+    urlInput.value = currentUrl;
+    makeQr(currentUrl);
+    backdrop.classList.add("open");
+    backdrop.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+    $("#shareCloseBtn").focus();
+
+    if (location.protocol === "file:" || /localhost|127\.0\.0\.1/.test(location.hostname)) {
+      hint.textContent = "PENTING: alamat lokal/file tidak bisa dibuka dari HP pengunjung. Deploy dashboard ke hosting publik lalu bagikan URL publiknya.";
+    }
+  }
+
+  function closeShare() {
+    backdrop.classList.remove("open");
+    backdrop.setAttribute("aria-hidden", "true");
+    document.body.style.overflow = "";
+    $("#shareOpenBtn")?.focus();
+  }
+
+  async function copyLink() {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(currentUrl);
+      } else {
+        urlInput.focus();
+        urlInput.select();
+        const copied = document.execCommand("copy");
+        if (!copied) throw new Error("Clipboard unavailable");
+      }
+      toastShare("Link copied", "Tautan dashboard berhasil disalin.");
+    } catch (error) {
+      urlInput.focus();
+      urlInput.select();
+      toastShare("Copy manual", "Browser memblokir clipboard. Tekan Ctrl+C untuk menyalin tautan.");
+    }
+  }
+
+  $("#shareOpenBtn")?.addEventListener("click", openShare);
+  $("#shareCloseBtn")?.addEventListener("click", closeShare);
+  $("#copyShareBtn")?.addEventListener("click", copyLink);
+  $("#nativeShareBtn")?.addEventListener("click", async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "WATER AI Dashboard", text: "Lihat dashboard monitoring WATER.", url: currentUrl });
+      } catch (error) {
+        if (error.name !== "AbortError") toastShare("Share unavailable", "Gunakan Copy link untuk membagikan dashboard.");
+      }
+    } else {
+      await copyLink();
+      toastShare("Native share unavailable", "Link disalin. Bagikan melalui aplikasi pilihanmu.");
+    }
+  });
+  $("#downloadQrBtn")?.addEventListener("click", () => {
+    const canvas = qrBox.querySelector("canvas");
+    const img = qrBox.querySelector("img");
+    const dataUrl = canvas?.toDataURL("image/png") || img?.src;
+    if (!dataUrl) {
+      toastShare("QR belum tersedia", "Pastikan koneksi internet aktif agar library QR termuat.");
+      return;
+    }
+    const a = document.createElement("a");
+    a.href = dataUrl;
+    a.download = "WATER-dashboard-QR.png";
+    document.body.append(a);
+    a.click();
+    a.remove();
+    toastShare("QR downloaded", "File QR dashboard berhasil diunduh.");
+  });
+  $("#openShareLinkBtn")?.addEventListener("click", () => window.open(currentUrl, "_blank", "noopener,noreferrer"));
+  backdrop?.addEventListener("click", (event) => {
+    if (event.target === backdrop) closeShare();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && backdrop.classList.contains("open")) closeShare();
+  });
+})();
+</script>
+
   </body>
   </html>
