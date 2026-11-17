@@ -682,7 +682,7 @@
     // {"timestamp": 1730000000, "distance_mm": 42.5, "flow_lpm": 120}
     // The parser also accepts water_distance as an alias for distance_mm.
     function handleTelemetry(data, source = "MQTT") {
-      const flow = Number(data.flow_pulses ?? data.flow ?? data.flow_rate);
+      let flow = Number(data.flow_pulses ?? data.flow ?? data.flow_rate);
       if (!Number.isFinite(flow)) {
         logMessage("Payload ignored: distance/flow field is missing or not numeric.", "warn");
         return;
