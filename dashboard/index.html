@@ -682,6 +682,7 @@
     // {"timestamp": 1730000000, "distance_mm": 42.5, "flow_lpm": 120}
     // The parser also accepts water_distance as an alias for distance_mm.
     function handleTelemetry(data, source = "MQTT") {
+      const distance = 0;
       let flow = Number(data.flow_pulses ?? data.flow ?? data.flow_rate);
       if (!Number.isFinite(flow)) {
         logMessage("Payload ignored: distance/flow field is missing or not numeric.", "warn");
@@ -721,7 +722,7 @@
         chart.data.labels.shift(); chart.data.datasets.forEach(ds => ds.data.shift());
       }
       chart.update("none");
-      logMessage(`${source} payload → distance=${distance.toFixed(1)} cm | flow=${flow}`);
+      logMessage(`${source} payload → flow=${flow}`);
       if (level < 20) addAlert("Low water level detected", `Estimated tank level is ${level.toFixed(0)}%. Check the water supply.`, "!");
       else if (level > 95) addAlert("Tank nearly full", "Estimated tank level is above 95%.", "↑");
     }
