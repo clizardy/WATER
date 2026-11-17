@@ -260,6 +260,20 @@
  #shareQr,#shareQr img,#shareQr canvas{width:150px!important;height:150px!important}
 }
 
+
+    /* WATER anomaly alert layer — additive styles only */
+    .water-alarm-backdrop{position:fixed;inset:0;z-index:180;background:rgba(5,8,18,.78);backdrop-filter:blur(10px);display:none;place-items:center;padding:20px}
+    .water-alarm-backdrop.open{display:grid}
+    .water-alarm-card{width:min(520px,100%);padding:28px;border:1px solid rgba(243,139,168,.55);border-radius:24px;background:linear-gradient(145deg,#2b1724,#171725 72%);box-shadow:0 25px 90px rgba(0,0,0,.55),0 0 45px rgba(243,139,168,.18);text-align:center;animation:waterAlarmIn .28s ease-out}
+    .water-alarm-icon{width:66px;height:66px;margin:0 auto 15px;border-radius:20px;display:grid;place-items:center;background:rgba(243,139,168,.15);color:#f38ba8;font-size:34px;animation:waterAlarmPulse 1s infinite}
+    .water-alarm-card .eyebrow{color:#f38ba8}.water-alarm-card h2{margin:8px 0;font-size:clamp(21px,4vw,29px);color:#fff}.water-alarm-card p{color:#bac2de;font-size:13px;line-height:1.7;margin:10px 0 20px}
+    .water-alarm-meta{padding:12px;border:1px solid rgba(243,139,168,.2);border-radius:13px;background:rgba(243,139,168,.07);font:11px 'DM Mono',monospace;color:#f5c2e7;margin-bottom:18px}
+    .water-alarm-actions{display:flex;justify-content:center;gap:9px;flex-wrap:wrap}.water-alarm-actions button{border:0;border-radius:11px;padding:12px 16px;font-size:11px;font-weight:900}.water-alarm-ack{background:#f38ba8;color:#24131b}.water-sound-btn{border:1px solid rgba(243,139,168,.28)!important;color:#f5c2e7!important;background:rgba(243,139,168,.08)!important}
+    .water-alarm-note{font-size:10px!important;color:#9399b2!important;margin-top:16px!important}
+    @keyframes waterAlarmIn{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:none}}
+    @keyframes waterAlarmPulse{50%{transform:scale(1.08);box-shadow:0 0 25px rgba(243,139,168,.25)}}
+    @media(prefers-reduced-motion:reduce){.water-alarm-icon{animation:none}.water-alarm-card{animation:none}}
+
     </style>
   </head>
   <body>
@@ -317,6 +331,7 @@
             </button>
           <div class="connection-pill" id="connectionPill"><span class="dot"></span><span id="connectionText">DISCONNECTED</span></div>
           <button class="icon-btn" id="notifyBtn" title="Notifications">♧</button>
+          <button class="icon-btn" id="waterSoundToggle" type="button" title="Aktifkan suara alarm" aria-pressed="false">🔔 SOUND OFF</button>
           <button class="icon-btn" id="themeBtn" title="Toggle visual mode">◐</button>
         </div>
       </header>
@@ -546,6 +561,20 @@
   <div class="kiosk-banner">EXHIBITION MODE · Press ESC to exit</div>
   <div id="commandPalette" aria-hidden="true"><div class="command-box"><div class="eyebrow">QUICK NAVIGATION / CTRL + K</div><div style="height:10px"></div><input id="commandInput" placeholder="Search dashboard tools..." autocomplete="off"><div class="command-results" id="commandResults"></div></div></div>
   <div class="toast-stack" id="toastStack"></div>
+  <div class="water-alarm-backdrop" id="waterAlarmModal" role="alertdialog" aria-modal="true" aria-labelledby="waterAlarmTitle" aria-describedby="waterAlarmDescription">
+    <section class="water-alarm-card">
+      <div class="water-alarm-icon">⚠</div>
+      <div class="eyebrow">WATER / ANOMALY DETECTED</div>
+      <h2 id="waterAlarmTitle">Indikasi anomali aliran air</h2>
+      <p id="waterAlarmDescription">Aliran terdeteksi secara terus-menerus. Periksa kran dan sambungan pipa.</p>
+      <div class="water-alarm-meta" id="waterAlarmMeta">FLOW: -- L/MIN · SOURCE: --</div>
+      <div class="water-alarm-actions">
+        <button class="water-alarm-ack" id="waterAlarmAck" type="button">Saya mengerti</button>
+        <button class="water-sound-btn" id="waterAlarmSound" type="button">Aktifkan suara</button>
+      </div>
+      <p class="water-alarm-note">Indikasi berbasis flow sensor, bukan konfirmasi kebocoran. Pastikan aliran bukan berasal dari kran yang sengaja dibuka.</p>
+    </section>
+  </div>
   <div class="modal-backdrop" id="settingsModal">
     <div class="modal">
       <h2>Connection settings</h2>
@@ -681,6 +710,91 @@
     // Expected firmware payload example:
     // {"timestamp": 1730000000, "distance_mm": 42.5, "flow_lpm": 120}
     // The parser also accepts water_distance as an alias for distance_mm.
+    // Exhibition anomaly alarm: sustained flow is treated as a possible leak indicator.
+    // Tune threshold only after calibrating the actual flow sensor and firmware payload.
+    const WATER_FLOW_ANOMALY_THRESHOLD_LPM = 0.30;
+    const WATER_FLOW_CONFIRM_READINGS = 3;
+    let waterHighFlowReadings = 0;
+    let waterLowFlowReadings = 0;
+    let waterAlarmActive = false;
+    let waterAudioContext = null;
+    let waterSoundEnabled = false;
+    let waterAlarmOscillators = [];
+
+    function waterPlayRingtone() {
+      if (!waterSoundEnabled) return;
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        waterAudioContext = waterAudioContext || new AudioCtx();
+        if (waterAudioContext.state === "suspended") waterAudioContext.resume();
+        const now = waterAudioContext.currentTime;
+        [880, 660, 880].forEach((frequency, index) => {
+          const oscillator = waterAudioContext.createOscillator();
+          const gain = waterAudioContext.createGain();
+          const start = now + index * 0.24;
+          oscillator.type = "sine";
+          oscillator.frequency.setValueAtTime(frequency, start);
+          gain.gain.setValueAtTime(0.0001, start);
+          gain.gain.exponentialRampToValueAtTime(0.16, start + 0.025);
+          gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.18);
+          oscillator.connect(gain); gain.connect(waterAudioContext.destination);
+          oscillator.start(start); oscillator.stop(start + 0.2);
+          waterAlarmOscillators.push(oscillator);
+          oscillator.onended = () => { waterAlarmOscillators = waterAlarmOscillators.filter(x => x !== oscillator); };
+        });
+      } catch (error) { console.warn("WATER alarm audio unavailable:", error); }
+    }
+
+    function waterShowAlarm(flow, source) {
+      waterAlarmActive = true;
+      const modal = $("#waterAlarmModal");
+      $("#waterAlarmMeta").textContent = `FLOW: ${flow.toFixed(2)} L/MIN · SOURCE: ${source}`;
+      modal.classList.add("open");
+      addAlert("Indikasi anomali aliran", `Aliran ${flow.toFixed(2)} L/min terdeteksi selama beberapa pembacaan. Periksa kran dan sambungan.`, "⚠");
+      logMessage(`FLOW ANOMALY: sustained flow ${flow.toFixed(2)} L/min (${source}).`, "error");
+      toast("⚠ WATER anomaly", "Aliran berkelanjutan terdeteksi. Periksa kran dan sambungan pipa.");
+      waterPlayRingtone();
+    }
+
+    function waterCheckFlowAnomaly(flow, source) {
+      if (!Number.isFinite(flow) || flow < 0) return;
+      if (flow >= WATER_FLOW_ANOMALY_THRESHOLD_LPM) {
+        waterHighFlowReadings++;
+        waterLowFlowReadings = 0;
+        if (!waterAlarmActive && waterHighFlowReadings >= WATER_FLOW_CONFIRM_READINGS) waterShowAlarm(flow, source);
+      } else {
+        waterLowFlowReadings++;
+        waterHighFlowReadings = 0;
+        if (waterAlarmActive && waterLowFlowReadings >= 2) {
+          waterAlarmActive = false;
+          $("#waterAlarmModal").classList.remove("open");
+          addAlert("Aliran kembali rendah", "Pembacaan flow berada di bawah ambang anomali.", "✓");
+          logMessage("Flow returned below anomaly threshold.");
+        }
+      }
+    }
+
+    // Audio must be enabled by a user gesture because browsers block autoplay.
+    $("#waterSoundToggle").addEventListener("click", async () => {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) { toast("Audio unavailable", "Browser ini tidak mendukung Web Audio."); return; }
+        waterAudioContext = waterAudioContext || new AudioCtx();
+        await waterAudioContext.resume();
+        waterSoundEnabled = !waterSoundEnabled;
+        $("#waterSoundToggle").textContent = waterSoundEnabled ? "🔔 SOUND ON" : "🔕 SOUND OFF";
+        $("#waterSoundToggle").setAttribute("aria-pressed", String(waterSoundEnabled));
+        toast("Alarm sound", waterSoundEnabled ? "Suara alarm aktif untuk anomali berikutnya." : "Suara alarm dimatikan.");
+        if (waterSoundEnabled && waterAlarmActive) waterPlayRingtone();
+      } catch (error) { toast("Audio blocked", "Klik tombol suara sekali lagi atau periksa pengaturan browser."); }
+    });
+    $("#waterAlarmSound").addEventListener("click", () => {
+      if (!waterSoundEnabled) $("#waterSoundToggle").click();
+      else waterPlayRingtone();
+    });
+    $("#waterAlarmAck").addEventListener("click", () => $("#waterAlarmModal").classList.remove("open"));
+
     function handleTelemetry(data, source = "MQTT") {
       const distance = 0;
       let flow = Number(data.flow_pulses ?? data.flow ?? data.flow_rate);
@@ -689,6 +803,7 @@
         return;
       }
       flow = (flow * 60) / 450;
+      waterCheckFlowAnomaly(flow, source);
       latestDistance = distance; latestFlow = flow; lastPacketAt = Date.now(); window.__waterLastPacketAt = lastPacketAt;
       const timestamp = Number(data.timestamp);
       const timeLabel = Number.isFinite(timestamp) && timestamp > 0
