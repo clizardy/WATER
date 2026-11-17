@@ -1,73 +1,78 @@
 #include <PubSubClient.h>
-#include <SPI.h>
-#include <SD.h>
 #include <WiFi.h>
-#include <time.h>
-#include <vector>
 #include <cmath>
 #include <cstdlib>
-#include "IsolationForest.h"
+#include <time.h>
+#include <vector>
+#include "KMeans.h"
 
-#define PIN_ULTRASONIC_TRIG 4
-#define PIN_ULTRASONIC_ECHO 16
-#define PIN_BUZZER          0
-#define PIN_FLOW_SENSOR     35
+#define BUZZER_GPIO 14
+#define PIN_FLOW_SENSOR 33
 
-#define PIN_SD_CS           5
-#define PIN_SD_SCK          18
-#define PIN_SD_MISO         19
-#define PIN_SD_MOSI         23
-#define PIN_SD_CD           34 // Card Detect (Wired, but optional for basic SD usage)
+#define ANOMALY_THRESHOLD 0.1f
+#define LOG_BUFFER_SIZE 2048
+#define LOOP_DURATION_MS 5000
+#define MAX_TRAINING_LINES 2000
+#define MAX_LOG_LINES 2000
+#define SIMULATE_FLOW 0
+#define FLOW_PULSE_NORMALIZATION 100.0f
 
-#define LOOP_DURATION_MS    5000
+const char* ssid = "WATER";
+const char* password = "00000000";
 
-// WiFi
-const char* ssid = "Wokwi-GUEST";
-const char* password = "";
+const char* mqttServer = "broker.hivemq.com";
+const char* mqttAiToggleTopic = "esp32/water/ai_toggle";
+const char* mqttResourcesTopic = "esp32/water/resources";
+const char* mqttSensorLogTopic = "esp32/water/sensor_log";
+const char* mqttSensorTopic = "esp32/water/sensors";
+const char* mqttTrainingTopic = "esp32/water/training_window";
 
-// MQTT
-const char* mqttServer = "broker.hivemq.com"; // Refer to https://www.mqtt-dashboard.com/
-const char* mqttTopic = "esp32/water/sensors";
-
-// NTP
 const char* ntpServer = "pool.ntp.org";
-const long gmtOffset_sec = 0; // Use 0 offset and let the dashboard handle it
-const int daylightOffset_sec = 0; // Use 0 offset and let the dashboard handle it
-
-// Directories
-const char* aiToggleDir = "/ai_toggle.txt";
-const char* sensorLogDir = "/sensor_log.csv";
-const char* trainedModelDir = "/trained_model.bin";
-const char* trainingWindowDir = "/training_window.txt";
+const long gmtOffset_sec = 0;
+const int daylightOffset_sec = 0;
 
 WiFiClient espClient;
 PubSubClient client(espClient);
 
-IsolationForest iforest(10, 64);
+KMeans kmeans(3, 100, 1e-4f);
+
+struct SensorLog {
+  time_t timestamp;
+  int flowPulses;
+};
+
+std::vector<SensorLog> sensorLogs;
+
+bool isAiEnabled = true;
+
+long long trainingStart = 0;
+long long trainingEnd = 0;
+
+volatile uint32_t pulseCount = 0;
+unsigned long previousFlowMillis = 0;
+
+void IRAM_ATTR countPulse() {
+  pulseCount++;
+}
+
+std::vector<float> normalizeSample(int flowPulses) {
+  float normalizedFlow = (float)flowPulses / FLOW_PULSE_NORMALIZATION;
+
+  return { normalizedFlow };
+}
 
 void setup() {
   Serial.begin(115200);
-  
-  pinMode(PIN_ULTRASONIC_TRIG, OUTPUT);
-  pinMode(PIN_ULTRASONIC_ECHO, INPUT);
-  pinMode(PIN_BUZZER, OUTPUT);
-  pinMode(PIN_FLOW_SENSOR, INPUT); 
-  pinMode(PIN_SD_CD, INPUT);
-  
-  SPI.begin(PIN_SD_SCK, PIN_SD_MISO, PIN_SD_MOSI, PIN_SD_CS);
-  Serial.println("[SD] Mounting SD Card...");
 
-  if (SD.begin(PIN_SD_CS, SPI)) {
-    Serial.println("[SD] SD Card mounted successfully!");
-    
-    initFiles();
+#if !SIMULATE_FLOW
+  previousFlowMillis = millis();
+  pinMode(PIN_FLOW_SENSOR, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(PIN_FLOW_SENSOR), countPulse, FALLING);
+#endif
 
-    if (getAiToggleValue()) {
-        applyIsolationForestTraining();
-    }
-  } else {
-    Serial.println("[ERROR] SD Card mount failed!");
-  }
+  pinMode(BUZZER_GPIO, OUTPUT);
+
+  trainFromSampleDataset();
 
   Serial.print("[WIFI] Connecting to WiFi");
   WiFi.begin(ssid, password);
@@ -80,33 +85,129 @@ void setup() {
   Serial.println("\n[WIFI] Connected to WiFi!");
 
   initTime();
+
   client.setServer(mqttServer, 1883);
+  client.setBufferSize(LOG_BUFFER_SIZE);
+  client.setCallback(mqttCallback);
 }
 
 void loop() {
-  delay(LOOP_DURATION_MS);
-  
+  unsigned long startWait = millis();
+
+  while (millis() - startWait < LOOP_DURATION_MS) {
+    if (!client.connected()) {
+      mqttReconnect();
+    }
+
+    client.loop();
+    delay(50);
+  }
+
   time_t epochTime = getTime();
-  float distance = getDistanceToWater();
-  int flowLPM = getFlowRate();
-  
-  sendAlert(distance, flowLPM);
-  logToSD(epochTime, distance, flowLPM);
-  mqttPublish(epochTime, distance, flowLPM);
+  int flowPulses = getWaterFlow();
+
+  sendAlert(flowPulses);
+  logToMemory(epochTime, flowPulses);
+  mqttPublishResources();
+  mqttPublishTelemetry(epochTime, flowPulses);
 }
 
-void mqttPublish(time_t epochTime, float distance, int flow) {
+void mqttCallback(char* topic, byte* payload, unsigned int length) {
+  String message = "";
+
+  for (unsigned int i = 0; i < length; i++) {
+    message += (char)payload[i];
+  }
+
+  message.trim();
+  Serial.printf("[MQTT] Message arrived on [%s]: %s\n", topic, message.c_str());
+
+  if (String(topic) == mqttAiToggleTopic) {
+    message.toLowerCase();
+    isAiEnabled = (message == "true" || message == "1");
+
+    Serial.printf("[KMEANS] Toggle status: %s\n", isAiEnabled);
+  } else if (String(topic) == mqttTrainingTopic) {
+    long long start = 0;
+    long long end = 0;
+
+    if (sscanf(message.c_str(), "%lld,%lld", &start, &end) == 2 && start > 0 && end > start) {
+      trainingStart = start;
+      trainingEnd = end;
+
+      Serial.println("[KMEANS] Training window updated from MQTT!");
+
+      if (getAiToggleValue()) {
+        Serial.println("[KMEANS] Retraining with the new training window...");
+        applyTraining();
+      }
+    } else {
+      Serial.println("[ERROR] Invalid training window.");
+    }
+  } else if (String(topic) == mqttSensorLogTopic) {
+    int cursor = message.toInt();
+    if (cursor <= 0) cursor = 1;
+
+    const int LINES_PER_PAGE = 50;
+    int startIndex = (cursor - 1) * LINES_PER_PAGE;
+
+    int sentCount = 0;
+    bool hasMore = false;
+    String payloadStr = "";
+
+    String startWrapper = "[LOG_START: cursor=" + String(cursor) + "]\n";
+    int metadataOverhead = startWrapper.length() + 100;
+
+    for (int i = startIndex; i < (int)sensorLogs.size(); i++) {
+      if (sentCount >= LINES_PER_PAGE) {
+        hasMore = true;
+        break;
+      }
+
+      const SensorLog& log = sensorLogs[i];
+
+      String line = String((long)log.timestamp) + "," + String(log.flowPulses) + "\n";
+
+      if (startWrapper.length() + payloadStr.length() + line.length() + metadataOverhead > LOG_BUFFER_SIZE) {
+        hasMore = true;
+        break;
+      }
+
+      payloadStr += line;
+      sentCount++;
+    }
+
+    String response = startWrapper + payloadStr + "[LOG_END: cursor=" + String(cursor) + ", has_more=" + (hasMore ? "true" : "false") + "]";
+
+    client.publish(mqttSensorLogTopic, response.c_str());
+
+    Serial.printf("[MQTT] Sensor log sent: Cursor %d, %d rows, %d bytes.\n",
+                  cursor, sentCount, response.length());
+  }
+}
+
+void mqttPublishResources() {
   if (!client.connected()) {
     mqttReconnect();
   }
 
-  String payloadStr = "{ \"timestamp\": " + String(epochTime) + 
-                      ", \"distance_mm\": " + String(distance) + 
-                      ", \"flow_lpm\": " + String(flow) + " }";
-  const uint8_t* payload = (uint8_t*) payloadStr.c_str();
-  
-  // QoS 1
-  if (client.publish(mqttTopic, payload, payloadStr.length(), false)) {
+  String payload = "{ \"free_heap\": " + String(ESP.getFreeHeap()) + ", \"max_alloc_heap\": " + String(ESP.getMaxAllocHeap()) + ", \"cpu_freq_mhz\": " + String(ESP.getCpuFreqMHz()) + ", \"stored_logs\": " + String(sensorLogs.size()) + " }";
+
+  client.publish(mqttResourcesTopic, payload.c_str());
+  Serial.print("[MQTT] Published payload: ");
+  Serial.println(payload);
+}
+
+void mqttPublishTelemetry(time_t epochTime, int flowPulses) {
+  if (!client.connected()) {
+    mqttReconnect();
+  }
+
+  String payloadStr = "{ \"timestamp\": " + String(epochTime) + ", \"flow_pulses\": " + String(flowPulses) + " }";
+
+  const uint8_t* payload = (uint8_t*)payloadStr.c_str();
+
+  if (client.publish(mqttSensorTopic, payload, payloadStr.length(), false)) {
     Serial.print("[MQTT] Published payload: ");
     Serial.println(payloadStr);
   } else {
@@ -120,8 +221,14 @@ void mqttReconnect() {
   while (!client.connected()) {
     Serial.println("[MQTT] Attempting MQTT connection...");
 
-    if (client.connect(mqttTopic)) {
+    if (client.connect(mqttSensorTopic)) {
       Serial.println("[MQTT] MQTT connected!");
+      client.subscribe(mqttSensorLogTopic);
+      client.subscribe(mqttTrainingTopic);
+      client.subscribe(mqttAiToggleTopic);
+
+      Serial.printf("[MQTT] Subscribed to topics: %s, %s, %s\n",
+                    mqttSensorLogTopic, mqttTrainingTopic, mqttAiToggleTopic);
     } else {
       Serial.printf("[ERROR] MQTT failed, rc=%d try again in 3 seconds.\n", client.state());
       delay(3000);
@@ -130,39 +237,51 @@ void mqttReconnect() {
 }
 
 bool getAiToggleValue() {
-  File file = SD.open(aiToggleDir, FILE_READ);
-
-  if (!file) {
-    Serial.println("[ERROR] Failed to open file, using 'false' as fallback.");
-    return false;
-  }
-
-  String fileContent = "";
-  
-  while (file.available()) {
-    fileContent += (char)file.read();
-  }
-
-  file.close();
-  fileContent.trim();
-
-  return fileContent.equals("true");
+  return isAiEnabled;
 }
 
-float getDistanceToWater() {
-  digitalWrite(PIN_ULTRASONIC_TRIG, LOW);
-  delayMicroseconds(2);
-  digitalWrite(PIN_ULTRASONIC_TRIG, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(PIN_ULTRASONIC_TRIG, LOW);
-  
-  long duration = pulseIn(PIN_ULTRASONIC_ECHO, HIGH);
+int getWaterFlow() {
+#if SIMULATE_FLOW
+  static unsigned long lastSimulationMillis = 0;
+  static uint32_t simulatedPulses = 0;
 
-  if (duration == 0) {
-    return 0.0;
+  unsigned long currentMillis = millis();
+  unsigned long elapsedMillis = currentMillis - lastSimulationMillis;
+
+  if (elapsedMillis == 0) {
+    return 0;
   }
-  
-  return (duration * 0.034) / 2.0;
+
+  // Simulate raw pulses per second
+  float pulsesPerSecond = 25.0f;
+
+  simulatedPulses += (uint32_t)roundf(
+    pulsesPerSecond * elapsedMillis / 1000.0f
+  );
+
+  lastSimulationMillis = currentMillis;
+
+  uint32_t pulses = simulatedPulses;
+  simulatedPulses = 0;
+
+  return (int)pulses;
+#else
+  unsigned long currentMillis = millis();
+  unsigned long elapsedMillis = currentMillis - previousFlowMillis;
+
+  if (elapsedMillis == 0) {
+    return 0;
+  }
+
+  noInterrupts();
+  uint32_t pulses = pulseCount;
+  pulseCount = 0;
+  interrupts();
+
+  previousFlowMillis = currentMillis;
+
+  return (int)pulses;
+#endif
 }
 
 time_t getTime() {
@@ -172,142 +291,124 @@ time_t getTime() {
     return mktime(&timeinfo);
   }
 
-  return 0; // Fallback
+  return 0;
 }
 
-void logToSD(time_t epochTime, float distance, int flow) {
-  struct tm timeinfo;
-
-  File logFile = SD.open(sensorLogDir, FILE_APPEND);
-
-  if (logFile) {
-    char buffer[64];
-    snprintf(buffer, sizeof(buffer), "%ld,%.2f,%d", epochTime, distance, flow);
-    logFile.println(buffer);
-    logFile.close();
-    
-    Serial.printf("[LOG] Timestamp: %ld | Distance: %.2f mm | Flow LPM: %d\n", epochTime, distance, flow);
-  } else {
-    Serial.println("[ERROR] Failed to open file.");
+void logToMemory(time_t epochTime, int flowPulses) {
+  if (sensorLogs.size() >= MAX_LOG_LINES) {
+    sensorLogs.erase(sensorLogs.begin());
   }
+
+  sensorLogs.push_back({ epochTime, flowPulses });
+
+  Serial.printf("[LOG] Timestamp: %ld | Flow Pulses: %d\n",
+                (long)epochTime, flowPulses);
 }
 
-void sendAlert(float distance, int flowLPM) {
-  if (!getAiToggleValue()) { return; }
-
-  std::vector<float> sample = {distance, (float)flowLPM};
-  float score = iforest.score(sample);
-
-  Serial.printf("[IFOREST] Anomaly Score: %.3f\n", score);
-
-  if (score > 0.65) {
-    Serial.println("[ALERT] Anomaly detected!");
-    tone(PIN_BUZZER, 1000, 1000); 
-  }
-}
-
-void ensureFileExists(const char* path, const char* content) {
-  if (SD.exists(path)) {
-    Serial.printf("[FILE] %s already exists.\n", path);
+void sendAlert(int flowPulses) {
+  if (!getAiToggleValue()) {
     return;
   }
 
-  File file = SD.open(path, FILE_WRITE);
+  std::vector<float> sample = normalizeSample((float)flowPulses);
+  int cluster = kmeans.predict(sample);
 
-  if (file) {
-    if (content && strlen(content) > 0) {
-      file.println(content);
-    }
-
-    file.close();
-    Serial.printf("[FILE] Created %s.\n", path);
-  } else {
-    Serial.printf("[ERROR] Failed to create %s!\n", path);
+  if (cluster < 0) {
+    return;
   }
-}
 
-void initFiles() {
-  ensureFileExists(aiToggleDir, "false");
-  ensureFileExists(sensorLogDir, "Timestamp,Distance(mm),Flow(LPM)");
-  ensureFileExists(trainingWindowDir, "0,0");
+  float distToCenter = kmeans.distanceToCentroid(sample);
+
+  Serial.printf("[KMEANS] Cluster: %d | Distance to centroid: %.3f\n", cluster, distToCenter);
+
+  if (distToCenter > ANOMALY_THRESHOLD) {
+    Serial.println("[ALERT] Anomaly detected!");
+    tone(BUZZER_GPIO, 1000, 1000);
+  }
 }
 
 void initTime() {
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
-  
+
   struct tm timeinfo;
 
   if (!getLocalTime(&timeinfo)) {
     Serial.println("[ERROR] Failed to obtain time from NTP. Retrying in 3 seconds");
     delay(3000);
+    return;
   }
 
   Serial.println("[NTP] Time synchronized successfully!");
 }
 
-void applyIsolationForestTraining() {
-  File configFile = SD.open(trainingWindowDir, FILE_READ);
-
-  if (!configFile) {
-    Serial.println("[INFO] No training window file found. Skipping training.");
-    return;
-  }
-
-  long long start = 0;
-  long long end = 0;
-  sscanf(configFile.readString().c_str(), "%lld,%lld", &start, &end);
-  configFile.close();
-
-  if (start == 0 || end == 0) {
+void applyTraining() {
+  if (trainingStart == 0 || trainingEnd == 0 || trainingStart >= trainingEnd) {
     Serial.println("[ERROR] Training window timestamps invalid or 0.");
     return;
   }
 
-  time_t startEpoch = (time_t)start;
-  time_t endEpoch = (time_t)end;
+  time_t startEpoch = (time_t)trainingStart;
+  time_t endEpoch = (time_t)trainingEnd;
 
-  Serial.printf("[IFOREST] Training window: %lld to %lld\n", (long long)startEpoch, (long long)endEpoch);
+  Serial.printf("[KMEANS] Training window: %lld to %lld\n",
+                (long long)startEpoch, (long long)endEpoch);
+
   trainFromLog(startEpoch, endEpoch);
 }
 
 void trainFromLog(time_t startEpoch, time_t endEpoch) {
-  File logFile = SD.open(sensorLogDir, FILE_READ);
-
-  if (!logFile) {
-    Serial.println("[ERROR] Can't open log file for training.");
-    return;
-  }
-
   std::vector<std::vector<float>> dataset;
-  logFile.readStringUntil('\n'); // Skip CSV header
 
-  while (logFile.available()) {
-    String line = logFile.readStringUntil('\n');
-    if (line.length() < 10) continue;
-
-    int firstComma = line.indexOf(',');
-    int secondComma = line.indexOf(',', firstComma + 1);
-
-    if (firstComma > 0 && secondComma > 0) {
-      time_t ts = line.substring(0, firstComma).toInt();
-      float distance = line.substring(firstComma + 1, secondComma).toFloat();
-      float flow = line.substring(secondComma + 1).toFloat();
-
-      if (ts >= startEpoch && ts <= endEpoch) {
-        dataset.push_back({distance, flow});
+  for (const auto& log : sensorLogs) {
+    if (log.timestamp >= startEpoch && log.timestamp <= endEpoch) {
+      if (dataset.size() < MAX_TRAINING_LINES) {
+        dataset.push_back(normalizeSample((float)log.flowPulses));
       }
     }
   }
 
-  logFile.close();
-
-  if (dataset.empty()) {
-    Serial.println("[ERROR] No data found in the training window.");
+  if (dataset.size() < 3) {
+    Serial.println("[ERROR] Not enough data in the training window.");
     return;
   }
 
-  iforest.train(dataset);
-  Serial.printf("[IFOREST] Trained successfully on %d samples ([Distance, Flow]).\n", dataset.size());
-  iforest.save(trainedModelDir);
+  kmeans.train(dataset);
+  Serial.printf("[KMEANS] Trained successfully on %d samples ([Flow Pulses]).\n",
+                (int)dataset.size());
 }
 
+void trainFromSampleDataset() {
+  std::vector<std::vector<float>> dataset = {
+    // Normal operating conditions
+    normalizeSample(75),
+    normalizeSample(112),
+    normalizeSample(112),
+    normalizeSample(150),
+    normalizeSample(150),
+    normalizeSample(187),
+    normalizeSample(187),
+    normalizeSample(225),
+    normalizeSample(225),
+
+    // Mid operating conditions
+    normalizeSample(300),
+    normalizeSample(337),
+    normalizeSample(337),
+    normalizeSample(375),
+    normalizeSample(375),
+    normalizeSample(412),
+
+    // Higher operating conditions
+    normalizeSample(487),
+    normalizeSample(525),
+    normalizeSample(562),
+    normalizeSample(600),
+    normalizeSample(637)
+  };
+
+  kmeans.train(dataset);
+
+  Serial.printf(
+    "[KMEANS] Embedded dataset training completed: %d samples.\n",
+    (int)dataset.size());
+}
