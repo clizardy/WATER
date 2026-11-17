@@ -683,11 +683,12 @@
     // The parser also accepts water_distance as an alias for distance_mm.
     function handleTelemetry(data, source = "MQTT") {
       const distance = Number(data.water_level_mm ?? data.water_level ?? data.level);
-      const flow = Number(data.flow_lpm ?? data.flow ?? data.flow_rate);
+      const flow = Number(data.flow_pulses ?? data.flow ?? data.flow_rate);
       if (!Number.isFinite(distance) || !Number.isFinite(flow)) {
         logMessage("Payload ignored: distance/flow field is missing or not numeric.", "warn");
         return;
       }
+      flow = (flow * 60) / 450;
       latestDistance = distance; latestFlow = flow; lastPacketAt = Date.now(); window.__waterLastPacketAt = lastPacketAt;
       const timestamp = Number(data.timestamp);
       const timeLabel = Number.isFinite(timestamp) && timestamp > 0
